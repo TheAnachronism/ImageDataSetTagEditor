@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AvaloniaProject">
+    <option name="projectPerEditor">
+      <map>
+        <entry key="src/ImageDataSetTagEditor/App.axaml" value="src/ImageDataSetTagEditor/ImageDataSetTagEditor.csproj" />
+        <entry key="src/ImageDataSetTagEditor/Views/AddTagWindow.axaml" value="src/ImageDataSetTagEditor/ImageDataSetTagEditor.csproj" />
+        <entry key="src/ImageDataSetTagEditor/Views/MainWindow.axaml" value="src/ImageDataSetTagEditor/ImageDataSetTagEditor.csproj" />
+      </map>
+    </option>
+  </component>
+</project>
