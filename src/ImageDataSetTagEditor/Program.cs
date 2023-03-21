@@ -1,9 +1,6 @@
 ﻿using Avalonia;
 using Avalonia.ReactiveUI;
 using System;
-using ImageDataSetTagEditor.Services;
-using ImageDataSetTagEditor.ViewModels;
-using Splat;
 
 namespace ImageDataSetTagEditor;
 
@@ -15,14 +12,7 @@ class Program
     [STAThread]
     public static void Main(string[] args)
     {
-        SplatRegistrations.RegisterLazySingleton<IDataSetService, DataSetService>();
-        SplatRegistrations.Register<MainWindowViewModel>();
-
-        SplatRegistrations.SetupIOC();
-        
-        var app = BuildAvaloniaApp();
-
-        app.StartWithClassicDesktopLifetime(args);
+        BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
     }
 
     // Avalonia configuration, don't remove; also used by visual designer.

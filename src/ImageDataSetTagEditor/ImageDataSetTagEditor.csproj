@@ -9,6 +9,7 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <Folder Include="Models" />
         <Folder Include="Models\" />
         <AvaloniaResource Include="Assets\**" />
     </ItemGroup>
@@ -19,10 +20,13 @@
 
     <ItemGroup>
         <PackageReference Include="Avalonia" Version="0.10.18" />
+        <PackageReference Include="Avalonia.Controls.TreeDataGrid" Version="0.10.18.1" />
         <PackageReference Include="Avalonia.Desktop" Version="0.10.18" />
         <!--Condition below is needed to remove Avalonia.Diagnostics package from build output in Release configuration.-->
         <PackageReference Condition="'$(Configuration)' == 'Debug'" Include="Avalonia.Diagnostics" Version="0.10.18" />
         <PackageReference Include="Avalonia.ReactiveUI" Version="0.10.18" />
+        <PackageReference Include="Avalonia.Svg.Skia" Version="0.10.18" />
+        <PackageReference Include="Avalonia.Xaml.Behaviors" Version="0.10.18" />
         <PackageReference Include="Splat.DependencyInjection.SourceGenerator" Version="1.1.93">
           <PrivateAssets>all</PrivateAssets>
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>

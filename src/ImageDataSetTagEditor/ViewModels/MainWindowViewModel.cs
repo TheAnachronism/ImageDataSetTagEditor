@@ -1,41 +1,60 @@
-﻿using System;
-using System.Collections.ObjectModel;
+﻿using System.Collections.ObjectModel;
+using System.IO;
 using System.Linq;
 using System.Reactive;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using DynamicData;
-using ImageDataSetTagEditor.Services;
 using ReactiveUI;
-using Splat;
 
 namespace ImageDataSetTagEditor.ViewModels;
 
 public class MainWindowViewModel : ViewModelBase
 {
-    private readonly IDataSetService _dataSetService;
+    private static readonly string[] ValidImageTypes = { ".jpg", ".jpeg", ".png", ".gif" };
+    private ImageViewModel? _currentSelectedImage;
+    private TagViewModel? _currentSelectedTag;
 
-    public MainWindowViewModel()
+    public string CountText => $"{Images.Count} Images loaded";
+
+    public ObservableCollection<ImageViewModel> Images { get; set; } = new();
+
+    public ImageViewModel? CurrentSelectedImage
     {
-        _dataSetService = new DataSetService();
+        get => _currentSelectedImage;
+        set => this.RaiseAndSetIfChanged(ref _currentSelectedImage, value);
     }
 
-    [DependencyInjectionConstructor]
-    public MainWindowViewModel(IDataSetService dataSetService)
+    public TagViewModel? CurrentSelectedTag
     {
-        _dataSetService = dataSetService;
-
-        LoadImagesCommand = ReactiveCommand.CreateFromTask(LoadImagesAsync);
-        AddTagCommand = ReactiveCommand.Create(AddTag);
+        get => _currentSelectedTag;
+        set => this.RaiseAndSetIfChanged(ref _currentSelectedTag, value);
     }
 
     public ReactiveCommand<Unit, Unit> LoadImagesCommand { get; }
-    public ReactiveCommand<Unit, Unit> AddTagCommand { get; }
-    public ObservableCollection<ImageViewModel> Images { get; } = new();
-    
-    private void AddTag()
+    public ReactiveCommand<Unit, Unit> SaveAllCommand { get; }
+    public ReactiveCommand<Unit, Unit> AddTagCommand { get; set; }
+    public ReactiveCommand<Unit, Unit> RemoveTagCommand { get; set; }
+    public ReactiveCommand<Unit, Unit> SelectNextImageCommand { get; set; }
+    public ReactiveCommand<Unit, Unit> SelectPreviousImageCommand { get; set; }
+    public ReactiveCommand<Unit, Unit> EnterTagEditCommand { get; set; }
+
+    public MainWindowViewModel()
     {
-        throw new NotImplementedException();
+        LoadImagesCommand = ReactiveCommand.CreateFromTask(LoadImagesAsync);
+        SaveAllCommand = ReactiveCommand.CreateFromTask(SaveAllAsync);
+        AddTagCommand = ReactiveCommand.Create(AddTag);
+        RemoveTagCommand = ReactiveCommand.Create(RemoveTag);
+        SelectNextImageCommand = ReactiveCommand.Create(SelectNextImage);
+        SelectPreviousImageCommand = ReactiveCommand.Create(SelectPreviousImage);
+        EnterTagEditCommand = ReactiveCommand.Create(EnterTagEdit);
+    }
+
+    private void EnterTagEdit()
+    {
+        if (CurrentSelectedImage is null) return;
+        CurrentSelectedTag = null;
+        CurrentSelectedTag = CurrentSelectedImage.Tags.FirstOrDefault();
     }
 
     private async Task LoadImagesAsync()
@@ -49,7 +68,67 @@ public class MainWindowViewModel : ViewModelBase
         if (selectedDirectory is null)
             return;
 
-        var images = _dataSetService.LoadDataSet(selectedDirectory);
-        Images.AddRange(images.Select(x => new ImageViewModel(x)));
+        Images.Clear();
+        
+        var files = Directory.EnumerateFiles(selectedDirectory, "*.*", SearchOption.AllDirectories)
+            .Where(file => ValidImageTypes.Contains(Path.GetExtension(file)));
+
+        var loadTasks = files.Select(async x =>
+        {
+            var image = new ImageViewModel(x, selectedDirectory);
+            await image.LoadTagsAsync();
+            return image;
+        }).ToList();
+
+        await Task.WhenAll(loadTasks);
+
+        Images.AddRange(loadTasks.Select(x => x.Result));
+        CurrentSelectedImage = Images.First();
+        CurrentSelectedTag = CurrentSelectedImage.Tags.FirstOrDefault();
+        this.RaisePropertyChanged(nameof(CountText));
+    }
+
+    private async Task SaveAllAsync()
+    {
+        foreach (var image in Images) await image.SaveAsync();
+    }
+
+    private void AddTag()
+    {
+        if (CurrentSelectedImage?.Tags.Any(x => string.IsNullOrEmpty(x.Value)) == true) return;
+        
+        CurrentSelectedImage?.Tags.Add(new TagViewModel(string.Empty));
+        CurrentSelectedTag = CurrentSelectedImage?.Tags.Last();
+    }
+
+    private void RemoveTag()
+    {
+        if (CurrentSelectedImage is null || CurrentSelectedTag is null) return;
+
+        var image = CurrentSelectedImage;
+        var index = image.Tags.IndexOf(CurrentSelectedTag);
+
+        image.Tags.Remove(CurrentSelectedTag);
+        if (!image.Tags.Any()) return;
+        
+        CurrentSelectedTag = image.Tags[index == image.Tags.Count ? index - 1 : index];
+    }
+
+    private void SelectNextImage()
+    {
+        if (CurrentSelectedImage is null) return;
+
+        var index = Images.IndexOf(CurrentSelectedImage);
+        if (index < Images.Count - 1)
+            CurrentSelectedImage = Images[index + 1];
+    }
+
+    private void SelectPreviousImage()
+    {
+        if (CurrentSelectedImage is null) return;
+
+        var index = Images.IndexOf(CurrentSelectedImage);
+        if (index > 0)
+            CurrentSelectedImage = Images[index - 1];
     }
 }

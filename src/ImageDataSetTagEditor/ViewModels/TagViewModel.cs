@@ -1,34 +1,19 @@
-﻿using System.Collections.Generic;
-using System.ComponentModel;
-using System.Runtime.CompilerServices;
-using ImageDataSetTagEditor.Models;
+﻿using ReactiveUI;
 
 namespace ImageDataSetTagEditor.ViewModels;
 
-public class TagViewModel : INotifyPropertyChanged
+public class TagViewModel : ReactiveObject
 {
     private string _value;
 
     public string Value
     {
         get => _value;
-        set
-        {
-            if (value == _value) return;
-            _value = value;
-            OnPropertyChanged();
-        }
+        set => this.RaiseAndSetIfChanged(ref _value, value);
     }
 
-    public TagViewModel(ImageTag sourceTag)
+    public TagViewModel(string value)
     {
-        _value = sourceTag.Value;
-    }
-
-    public event PropertyChangedEventHandler? PropertyChanged;
-
-    protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
-    {
-        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        _value = value;
     }
 }
