@@ -4,6 +4,7 @@ using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Templates;
 using Avalonia.Input;
+using Avalonia.Interactivity;
 using Avalonia.LogicalTree;
 using Avalonia.VisualTree;
 using ImageDataSetTagEditor.ViewModels;
@@ -18,13 +19,13 @@ public partial class MainWindow : Window
 #if DEBUG
         this.AttachDevTools();
 #endif
+
+        ViewModel?.FocusSearchBoxCommand.Subscribe(new AnonymousObserver<Unit>(_ => ImageSearchBox.Focus()));
     }
 
     public MainWindow(object? dataContext) : this()
     {
         DataContext = dataContext;
-
-        ViewModel?.FocusSearchBoxCommand.Subscribe(new AnonymousObserver<Unit>(_ => ImageSearchBox.Focus()));
     }
 
     private MainWindowViewModel? ViewModel => DataContext as MainWindowViewModel;
@@ -58,5 +59,24 @@ public partial class MainWindow : Window
             is not TextBox textBox) return;
 
         textBox.Focus();
+    }
+
+    private void InputElement_OnPointerPressed(object? sender, PointerPressedEventArgs e)
+    {
+        if (sender is not TextBlock { DataContext: GlobalTagViewModel } textBlock) return;
+
+        var clickedTag = (GlobalTagViewModel)textBlock.DataContext;
+
+        var images = ViewModel!.FilteredImages.Where(x => x.Tags.Any(y => y.Value.Equals(clickedTag.Value))).ToList();
+        if (!images.Any())
+            return;
+
+        if (images.Count == 1 || ViewModel.CurrentSelectedImage is null)
+            ViewModel.CurrentSelectedImage = images.First();
+        else
+        {
+            var index = images.IndexOf(ViewModel.CurrentSelectedImage);
+            ViewModel.CurrentSelectedImage = index < images.Count - 1 ? images[index + 1] : images.First();
+        }
     }
 }

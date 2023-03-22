@@ -16,22 +16,38 @@ public class MainWindowViewModel : ViewModelBase
     private static readonly string[] ValidImageTypes = { ".jpg", ".jpeg", ".png", ".gif" };
     private ImageViewModel? _currentSelectedImage;
     private TagViewModel? _currentSelectedTag;
-    private string _currentSearchTerm = string.Empty;
+    private GlobalTagViewModel? _selectedGlobalTag;
+    private string _currentImageSearchTerm = string.Empty;
+    private string _currentTagSearchTerm = string.Empty;
 
     public string CountText => $"{_images.Count} Images loaded";
 
     private readonly SourceCache<ImageViewModel, string> _images = new(x => x.ImagePath);
+    private readonly SourceCache<GlobalTagViewModel, string> _globalTags = new(x => x.Value);
 
     public IObservableCollection<ImageViewModel> FilteredImages { get; } =
         new ObservableCollectionExtended<ImageViewModel>();
 
-    public string CurrentSearchTerm
+    public IObservableCollection<GlobalTagViewModel> FilteredTags { get; } =
+        new ObservableCollectionExtended<GlobalTagViewModel>();
+
+    public string CurrentImageSearchTerm
     {
-        get => _currentSearchTerm;
+        get => _currentImageSearchTerm;
         set
         {
-            this.RaiseAndSetIfChanged(ref _currentSearchTerm, value);
+            this.RaiseAndSetIfChanged(ref _currentImageSearchTerm, value);
             _images.Refresh();
+        }
+    }
+
+    public string CurrentTagSearchTerm
+    {
+        get => _currentTagSearchTerm;
+        set
+        {
+            this.RaiseAndSetIfChanged(ref _currentTagSearchTerm, value);
+            _globalTags.Refresh();
         }
     }
 
@@ -47,6 +63,12 @@ public class MainWindowViewModel : ViewModelBase
         set => this.RaiseAndSetIfChanged(ref _currentSelectedTag, value);
     }
 
+    public GlobalTagViewModel? SelectedGlobalTag
+    {
+        get => _selectedGlobalTag;
+        set => this.RaiseAndSetIfChanged(ref _selectedGlobalTag, value);
+    }
+
     public ReactiveCommand<Unit, Unit> LoadImagesCommand { get; }
     public ReactiveCommand<Unit, Unit> SaveAllCommand { get; }
     public ReactiveCommand<Unit, Unit> AddTagCommand { get; set; }
@@ -59,9 +81,15 @@ public class MainWindowViewModel : ViewModelBase
     public MainWindowViewModel()
     {
         _images.Connect()
-            .Filter(Filter, new ParallelisationOptions(ParallelType.Ordered))
+            .Filter(FilterImages, new ParallelisationOptions(ParallelType.Ordered))
             .Sort(SortExpressionComparer<ImageViewModel>.Ascending(x => x.ImagePath))
             .Bind(FilteredImages)
+            .Subscribe();
+
+        _globalTags.Connect()
+            .Filter(FilterTags, new ParallelisationOptions(ParallelType.Ordered))
+            .Sort(SortExpressionComparer<GlobalTagViewModel>.Descending(x => x.ImageCount).ThenByAscending(x => x.Value))
+            .Bind(FilteredTags)
             .Subscribe();
 
         LoadImagesCommand = ReactiveCommand.CreateFromTask(LoadImagesAsync);
@@ -73,12 +101,20 @@ public class MainWindowViewModel : ViewModelBase
         EnterTagEditCommand = ReactiveCommand.Create(EnterTagEdit);
     }
 
-    private bool Filter(ImageViewModel arg)
+    private bool FilterImages(ImageViewModel image)
     {
-        if (string.IsNullOrEmpty(_currentSearchTerm)) return true;
+        if (string.IsNullOrEmpty(_currentImageSearchTerm)) return true;
 
-        var terms = _currentSearchTerm.Split(" ").Where(x => !string.IsNullOrEmpty(x));
-        return terms.All(x => arg.ImageName.Contains(x, StringComparison.InvariantCultureIgnoreCase));
+        var terms = _currentImageSearchTerm.Split(" ").Where(x => !string.IsNullOrEmpty(x));
+        return terms.All(x => image.ImageName.Contains(x, StringComparison.InvariantCultureIgnoreCase));
+    }
+
+    private bool FilterTags(GlobalTagViewModel tag)
+    {
+        if (string.IsNullOrEmpty(_currentTagSearchTerm)) return true;
+
+        var terms = _currentTagSearchTerm.Split(" ").Where(x => !string.IsNullOrEmpty(x));
+        return terms.All(x => tag.Value.Contains(x, StringComparison.InvariantCultureIgnoreCase));
     }
 
     private void EnterTagEdit()
@@ -113,9 +149,17 @@ public class MainWindowViewModel : ViewModelBase
 
         await Task.WhenAll(loadTasks);
 
-        _images.AddOrUpdate(loadTasks.Select(x => x.Result));
+        var loadedImages = loadTasks.Select(x => x.Result).ToList();
+        _images.AddOrUpdate(loadedImages);
+        var tags = loadedImages.SelectMany(x => x.Tags, (image, tag) => new { Image = image, Tag = tag })
+            .GroupBy(x => x.Tag.Value, x => x.Image)
+            .ToList();
+        
+        _globalTags.AddOrUpdate(tags.Select(x => new GlobalTagViewModel(x.Key, x.Count())));
+
         CurrentSelectedImage = FilteredImages.First();
         CurrentSelectedTag = CurrentSelectedImage.Tags.FirstOrDefault();
+
         this.RaisePropertyChanged(nameof(CountText));
     }
 
