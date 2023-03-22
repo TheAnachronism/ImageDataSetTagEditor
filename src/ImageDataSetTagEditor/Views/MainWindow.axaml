@@ -16,6 +16,8 @@
         <KeyBinding Gesture="Ctrl+Add" Command="{Binding AddTagCommand}" />
         <KeyBinding Gesture="Ctrl+Subtract" Command="{Binding RemoveTagCommand}" />
         <KeyBinding Gesture="Ctrl+Enter" Command="{Binding EnterTagEditCommand}" />
+        <KeyBinding Gesture="Ctrl+F" Command="{Binding FocusSearchBoxCommand}" />
+
     </Window.KeyBindings>
     <i:Interaction.Behaviors>
         <EventTriggerBehavior EventName="Closing">
@@ -48,27 +50,34 @@
         </Grid>
         <Border Grid.Row="1" BorderBrush="Black" BorderThickness="0 1 0 0">
             <Grid ColumnDefinitions="*,*,*">
-                <ListBox Grid.Column="0" Items="{Binding Images}"
-                         SelectedItem="{Binding CurrentSelectedImage}"
-                         SelectionMode="Single"
-                         SelectionChanged="ImageList_OnSelectionChanged">
-                    <ListBox.ItemTemplate>
-                        <DataTemplate>
-                            <Border CornerRadius="1" BorderBrush="Black">
-                                <Grid ColumnDefinitions="*,*,*">
-                                    <Image Grid.Column="0"
-                                           Source="{Binding ImagePath,Converter={StaticResource VariableImage}}"
-                                           MaxHeight="150" MinHeight="50" />
-                                    <TextBlock Grid.Column="1" Text="{Binding ImageName}" HorizontalAlignment="Center"
-                                               VerticalAlignment="Center" />
-                                    <TextBlock Grid.Column="2" Text="{Binding Tags.Count}" HorizontalAlignment="Center"
-                                               VerticalAlignment="Center" />
-                                </Grid>
-                            </Border>
-                        </DataTemplate>
-                    </ListBox.ItemTemplate>
-                </ListBox>
-
+                <Grid Grid.Column="0" RowDefinitions="Auto, *">
+                    <TextBox  Name="ImageSearchBox" Grid.Row="0" Text="{Binding CurrentSearchTerm}"
+                             Watermark="Search..."/>
+                    <ListBox Grid.Row="1" Items="{Binding FilteredImages}"
+                             SelectedItem="{Binding CurrentSelectedImage}"
+                             SelectionMode="Single"
+                             SelectionChanged="ImageList_OnSelectionChanged">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Border CornerRadius="1" BorderBrush="Black">
+                                    <Grid ColumnDefinitions="*,*,*">
+                                        <Image Grid.Column="0"
+                                               Source="{Binding ImagePath,Converter={StaticResource VariableImage}}"
+                                               MaxHeight="150" MinHeight="50" />
+                                        <TextBlock Grid.Column="1" Text="{Binding ImageName}"
+                                                   HorizontalAlignment="Center"
+                                                   VerticalAlignment="Center" />
+                                        <TextBlock Grid.Column="2" Text="{Binding Tags.Count}"
+                                                   HorizontalAlignment="Center"
+                                                   VerticalAlignment="Center" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                    
+                </Grid>
+                
                 <Grid Grid.Column="1" RowDefinitions="500, 1, *">
                     <Border Grid.Row="0"
                             Height="500"
@@ -78,26 +87,24 @@
                                Source="{Binding CurrentSelectedImage.ImagePath, Converter={StaticResource VariableImage}, ConverterParameter=500}" />
                     </Border>
                     <Grid Grid.Row="2" ColumnDefinitions="8*, Auto" RowDefinitions="*">
-                        <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto">
-                            <ListBox Items="{Binding CurrentSelectedImage.Tags}"
-                                     SelectedItem="{Binding CurrentSelectedTag}"
-                                     SelectionChanged="TagListBox_OnSelectionChanged"
-                                     SelectionMode="Single"
-                                     SelectedIndex="0">
-                                <ListBox.Styles>
-                                    <Style Selector="ListBoxItem">
-                                        <Setter Property="IsTabStop" Value="False" />
-                                    </Style>
-                                </ListBox.Styles>
-                                <ListBox.ItemTemplate>
-                                    <DataTemplate>
-                                        <TextBox GotFocus="TagTextBox_OnGotFocus" Text="{Binding Value}"
-                                                 HorizontalContentAlignment="Left" />
-                                    </DataTemplate>
-                                </ListBox.ItemTemplate>
-                            </ListBox>
-                        </ScrollViewer>
-                        
+                        <ListBox Grid.Column="0" Items="{Binding CurrentSelectedImage.Tags}"
+                                 SelectedItem="{Binding CurrentSelectedTag}"
+                                 SelectionChanged="TagListBox_OnSelectionChanged"
+                                 SelectionMode="Single"
+                                 SelectedIndex="0">
+                            <ListBox.Styles>
+                                <Style Selector="ListBoxItem">
+                                    <Setter Property="IsTabStop" Value="False" />
+                                </Style>
+                            </ListBox.Styles>
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBox GotFocus="TagTextBox_OnGotFocus" Text="{Binding Value}"
+                                             HorizontalContentAlignment="Left" />
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+
                         <StackPanel Grid.Column="1" Orientation="Vertical">
                             <Button Height="50" Width="50" Command="{Binding AddTagCommand}">
                                 <Image Source="{SvgImage /Assets/plus-square-fill.svg}" />

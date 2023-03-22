@@ -1,4 +1,6 @@
 using System.Linq;
+using System.Reactive;
+using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Controls.Templates;
 using Avalonia.Input;
@@ -13,11 +15,16 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+#if DEBUG
+        this.AttachDevTools();
+#endif
     }
 
     public MainWindow(object? dataContext) : this()
     {
         DataContext = dataContext;
+
+        ViewModel?.FocusSearchBoxCommand.Subscribe(new AnonymousObserver<Unit>(_ => ImageSearchBox.Focus()));
     }
 
     private MainWindowViewModel? ViewModel => DataContext as MainWindowViewModel;
@@ -44,9 +51,12 @@ public partial class MainWindow : Window
         if (sender is not ListBox listBox) return;
         if (e.AddedItems.Cast<TagViewModel>().SingleOrDefault() is not { } tagViewModel) return;
 
-        if (listBox.GetVisualChildren()
+        listBox.ScrollIntoView(listBox.ItemCount - 1);
+
+        if (listBox.GetVisualDescendants()
                 .SingleOrDefault(x => x is TextBox { DataContext: TagViewModel tag } && tag == tagViewModel)
-            is TextBox textBox)
-            textBox.Focus();
+            is not TextBox textBox) return;
+
+        textBox.Focus();
     }
 }

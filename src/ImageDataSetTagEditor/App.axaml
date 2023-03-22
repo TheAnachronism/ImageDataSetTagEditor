@@ -9,6 +9,5 @@
 
     <Application.Styles>
         <FluentTheme Mode="Dark"/>
-        <StyleInclude Source="avares://Avalonia.Controls.TreeDataGrid/Themes/Fluent.axaml"/>
     </Application.Styles>
 </Application>

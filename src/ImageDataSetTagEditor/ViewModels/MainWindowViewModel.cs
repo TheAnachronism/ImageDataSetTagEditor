@@ -1,10 +1,12 @@
-﻿using System.Collections.ObjectModel;
+﻿using System;
 using System.IO;
 using System.Linq;
 using System.Reactive;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using DynamicData;
+using DynamicData.Binding;
+using DynamicData.PLinq;
 using ReactiveUI;
 
 namespace ImageDataSetTagEditor.ViewModels;
@@ -14,10 +16,24 @@ public class MainWindowViewModel : ViewModelBase
     private static readonly string[] ValidImageTypes = { ".jpg", ".jpeg", ".png", ".gif" };
     private ImageViewModel? _currentSelectedImage;
     private TagViewModel? _currentSelectedTag;
+    private string _currentSearchTerm = string.Empty;
 
-    public string CountText => $"{Images.Count} Images loaded";
+    public string CountText => $"{_images.Count} Images loaded";
 
-    public ObservableCollection<ImageViewModel> Images { get; set; } = new();
+    private readonly SourceCache<ImageViewModel, string> _images = new(x => x.ImagePath);
+
+    public IObservableCollection<ImageViewModel> FilteredImages { get; } =
+        new ObservableCollectionExtended<ImageViewModel>();
+
+    public string CurrentSearchTerm
+    {
+        get => _currentSearchTerm;
+        set
+        {
+            this.RaiseAndSetIfChanged(ref _currentSearchTerm, value);
+            _images.Refresh();
+        }
+    }
 
     public ImageViewModel? CurrentSelectedImage
     {
@@ -38,9 +54,16 @@ public class MainWindowViewModel : ViewModelBase
     public ReactiveCommand<Unit, Unit> SelectNextImageCommand { get; set; }
     public ReactiveCommand<Unit, Unit> SelectPreviousImageCommand { get; set; }
     public ReactiveCommand<Unit, Unit> EnterTagEditCommand { get; set; }
+    public ReactiveCommand<Unit, Unit> FocusSearchBoxCommand { get; set; } = ReactiveCommand.Create(() => { });
 
     public MainWindowViewModel()
     {
+        _images.Connect()
+            .Filter(Filter, new ParallelisationOptions(ParallelType.Ordered))
+            .Sort(SortExpressionComparer<ImageViewModel>.Ascending(x => x.ImagePath))
+            .Bind(FilteredImages)
+            .Subscribe();
+
         LoadImagesCommand = ReactiveCommand.CreateFromTask(LoadImagesAsync);
         SaveAllCommand = ReactiveCommand.CreateFromTask(SaveAllAsync);
         AddTagCommand = ReactiveCommand.Create(AddTag);
@@ -48,6 +71,14 @@ public class MainWindowViewModel : ViewModelBase
         SelectNextImageCommand = ReactiveCommand.Create(SelectNextImage);
         SelectPreviousImageCommand = ReactiveCommand.Create(SelectPreviousImage);
         EnterTagEditCommand = ReactiveCommand.Create(EnterTagEdit);
+    }
+
+    private bool Filter(ImageViewModel arg)
+    {
+        if (string.IsNullOrEmpty(_currentSearchTerm)) return true;
+
+        var terms = _currentSearchTerm.Split(" ").Where(x => !string.IsNullOrEmpty(x));
+        return terms.All(x => arg.ImageName.Contains(x, StringComparison.InvariantCultureIgnoreCase));
     }
 
     private void EnterTagEdit()
@@ -68,8 +99,8 @@ public class MainWindowViewModel : ViewModelBase
         if (selectedDirectory is null)
             return;
 
-        Images.Clear();
-        
+        _images.Clear();
+
         var files = Directory.EnumerateFiles(selectedDirectory, "*.*", SearchOption.AllDirectories)
             .Where(file => ValidImageTypes.Contains(Path.GetExtension(file)));
 
@@ -82,21 +113,21 @@ public class MainWindowViewModel : ViewModelBase
 
         await Task.WhenAll(loadTasks);
 
-        Images.AddRange(loadTasks.Select(x => x.Result));
-        CurrentSelectedImage = Images.First();
+        _images.AddOrUpdate(loadTasks.Select(x => x.Result));
+        CurrentSelectedImage = FilteredImages.First();
         CurrentSelectedTag = CurrentSelectedImage.Tags.FirstOrDefault();
         this.RaisePropertyChanged(nameof(CountText));
     }
 
     private async Task SaveAllAsync()
     {
-        foreach (var image in Images) await image.SaveAsync();
+        foreach (var image in _images.Items) await image.SaveAsync();
     }
 
     private void AddTag()
     {
         if (CurrentSelectedImage?.Tags.Any(x => string.IsNullOrEmpty(x.Value)) == true) return;
-        
+
         CurrentSelectedImage?.Tags.Add(new TagViewModel(string.Empty));
         CurrentSelectedTag = CurrentSelectedImage?.Tags.Last();
     }
@@ -110,25 +141,31 @@ public class MainWindowViewModel : ViewModelBase
 
         image.Tags.Remove(CurrentSelectedTag);
         if (!image.Tags.Any()) return;
-        
+
         CurrentSelectedTag = image.Tags[index == image.Tags.Count ? index - 1 : index];
     }
 
     private void SelectNextImage()
     {
-        if (CurrentSelectedImage is null) return;
+        if (CurrentSelectedImage is null)
+        {
+            if (FilteredImages.Any())
+                CurrentSelectedImage = FilteredImages.First();
 
-        var index = Images.IndexOf(CurrentSelectedImage);
-        if (index < Images.Count - 1)
-            CurrentSelectedImage = Images[index + 1];
+            return;
+        }
+
+        var index = FilteredImages.IndexOf(CurrentSelectedImage);
+        if (index < FilteredImages.Count - 1)
+            CurrentSelectedImage = FilteredImages[index + 1];
     }
 
     private void SelectPreviousImage()
     {
         if (CurrentSelectedImage is null) return;
 
-        var index = Images.IndexOf(CurrentSelectedImage);
+        var index = FilteredImages.IndexOf(CurrentSelectedImage);
         if (index > 0)
-            CurrentSelectedImage = Images[index - 1];
+            CurrentSelectedImage = FilteredImages[index - 1];
     }
 }
