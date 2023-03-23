@@ -46,6 +46,7 @@
                     </Style>
                 </StackPanel.Styles>
                 <TextBlock Text="{Binding CountText}" />
+                <TextBlock Text="{Binding TagCountText}" />
             </StackPanel>
         </Grid>
         <Border Grid.Row="1" BorderBrush="Black" BorderThickness="0 1 0 0">
@@ -117,27 +118,32 @@
                 </Grid>
 
                 <Grid Grid.Column="2" RowDefinitions="Auto, *">
-                    <TextBox Name="GlobalTagSearchBox" Grid.Row="0" Text="{Binding CurrentTagSearchTerm}"
-                             Watermark="Search Tags..." />
+                    <Grid Grid.Row="0" ColumnDefinitions="8*, Auto">
+                        <TextBox Grid.Column="0" Name="GlobalTagSearchBox" DockPanel.Dock="Left"
+                                 Text="{Binding CurrentTagSearchTerm}"
+                                 Watermark="Search Tags..." HorizontalAlignment="Stretch" />
+                        <Button Grid.Column="1" DockPanel.Dock="Right" Content="Refresh" Command="{Binding RefreshGlobalTagsCommand}" />
+                    </Grid>
                     <ListBox Grid.Row="1" Items="{Binding FilteredTags}"
                              SelectedItem="{Binding SelectedGlobalTag}"
                              SelectionMode="Single">
                         <ListBox.Styles>
                             <Style Selector="ListBoxItem">
-                                <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
-                                <Setter Property="IsPointerOver" Value="True"/>
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
                             </Style>
                         </ListBox.Styles>
                         <ListBox.ItemTemplate>
                             <DataTemplate>
-                                <Grid ColumnDefinitions="*,*">
-                                    <TextBlock Grid.Column="0"
-                                               Text="{Binding Value}" HorizontalAlignment="Center"
-                                               VerticalAlignment="Center" />
-                                    <TextBlock Grid.Column="1"
-                                               Text="{Binding ImageCount}" HorizontalAlignment="Center"
-                                               VerticalAlignment="Center" />
-                                </Grid>
+                                <Border DoubleTapped="GlobalTagElement_OnDoubleTapped">
+                                    <Grid ColumnDefinitions="*,*">
+                                        <TextBlock Grid.Column="0"
+                                                   Text="{Binding Value}" HorizontalAlignment="Center"
+                                                   VerticalAlignment="Center" />
+                                        <TextBlock Grid.Column="1"
+                                                   Text="{Binding ImageCount}" HorizontalAlignment="Center"
+                                                   VerticalAlignment="Center" />
+                                    </Grid>
+                                </Border>
                             </DataTemplate>
                         </ListBox.ItemTemplate>
                     </ListBox>

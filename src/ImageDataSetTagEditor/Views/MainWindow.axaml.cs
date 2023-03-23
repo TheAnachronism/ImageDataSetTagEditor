@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Linq;
 using System.Reactive;
 using Avalonia;
@@ -19,13 +20,12 @@ public partial class MainWindow : Window
 #if DEBUG
         this.AttachDevTools();
 #endif
-
-        ViewModel?.FocusSearchBoxCommand.Subscribe(new AnonymousObserver<Unit>(_ => ImageSearchBox.Focus()));
     }
 
     public MainWindow(object? dataContext) : this()
     {
         DataContext = dataContext;
+        ViewModel?.FocusSearchBoxCommand.Subscribe(new AnonymousObserver<Unit>(_ => ImageSearchBox.Focus()));
     }
 
     private MainWindowViewModel? ViewModel => DataContext as MainWindowViewModel;
@@ -61,11 +61,11 @@ public partial class MainWindow : Window
         textBox.Focus();
     }
 
-    private void InputElement_OnPointerPressed(object? sender, PointerPressedEventArgs e)
+    private void GlobalTagElement_OnDoubleTapped(object? sender, RoutedEventArgs e)
     {
-        if (sender is not TextBlock { DataContext: GlobalTagViewModel } textBlock) return;
+        if (sender is not Border { DataContext: GlobalTagViewModel } border) return;
 
-        var clickedTag = (GlobalTagViewModel)textBlock.DataContext;
+        var clickedTag = (GlobalTagViewModel)border.DataContext;
 
         var images = ViewModel!.FilteredImages.Where(x => x.Tags.Any(y => y.Value.Equals(clickedTag.Value))).ToList();
         if (!images.Any())

@@ -1,6 +1,8 @@
-﻿namespace ImageDataSetTagEditor.ViewModels;
+﻿using ReactiveUI;
 
-public class GlobalTagViewModel
+namespace ImageDataSetTagEditor.ViewModels;
+
+public class GlobalTagViewModel : ReactiveObject
 {
     public string Value { get; }
     public string ImageCount { get; } 

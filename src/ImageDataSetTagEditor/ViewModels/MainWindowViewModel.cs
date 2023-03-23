@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reactive;
@@ -20,7 +21,8 @@ public class MainWindowViewModel : ViewModelBase
     private string _currentImageSearchTerm = string.Empty;
     private string _currentTagSearchTerm = string.Empty;
 
-    public string CountText => $"{_images.Count} Images loaded";
+    public string CountText => $"{_images.Count} Images";
+    public string TagCountText => $"{_globalTags.Count} distinct tags";
 
     private readonly SourceCache<ImageViewModel, string> _images = new(x => x.ImagePath);
     private readonly SourceCache<GlobalTagViewModel, string> _globalTags = new(x => x.Value);
@@ -77,6 +79,7 @@ public class MainWindowViewModel : ViewModelBase
     public ReactiveCommand<Unit, Unit> SelectPreviousImageCommand { get; set; }
     public ReactiveCommand<Unit, Unit> EnterTagEditCommand { get; set; }
     public ReactiveCommand<Unit, Unit> FocusSearchBoxCommand { get; set; } = ReactiveCommand.Create(() => { });
+    public ReactiveCommand<Unit, Unit> RefreshGlobalTagsCommand { get; set; }
 
     public MainWindowViewModel()
     {
@@ -88,7 +91,8 @@ public class MainWindowViewModel : ViewModelBase
 
         _globalTags.Connect()
             .Filter(FilterTags, new ParallelisationOptions(ParallelType.Ordered))
-            .Sort(SortExpressionComparer<GlobalTagViewModel>.Descending(x => x.ImageCount).ThenByAscending(x => x.Value))
+            .Sort(SortExpressionComparer<GlobalTagViewModel>.Descending(x => x.ImageCount)
+                .ThenByAscending(x => x.Value))
             .Bind(FilteredTags)
             .Subscribe();
 
@@ -99,6 +103,7 @@ public class MainWindowViewModel : ViewModelBase
         SelectNextImageCommand = ReactiveCommand.Create(SelectNextImage);
         SelectPreviousImageCommand = ReactiveCommand.Create(SelectPreviousImage);
         EnterTagEditCommand = ReactiveCommand.Create(EnterTagEdit);
+        RefreshGlobalTagsCommand = ReactiveCommand.Create(RefreshGlobalTags);
     }
 
     private bool FilterImages(ImageViewModel image)
@@ -124,11 +129,21 @@ public class MainWindowViewModel : ViewModelBase
         CurrentSelectedTag = CurrentSelectedImage.Tags.FirstOrDefault();
     }
 
+    private void RefreshGlobalTags()
+    {
+        var tags = _images.Items.SelectMany(x => x.Tags, (image, tag) => new { Image = image, Tag = tag })
+            .GroupBy(x => x.Tag.Value, x => x.Image)
+            .ToList();
+
+        _globalTags.Clear();
+        _globalTags.AddOrUpdate(tags.Select(x => new GlobalTagViewModel(x.Key, x.Count())));
+    }
+
     private async Task LoadImagesAsync()
     {
         var dialog = new OpenFolderDialog
         {
-            Title = "Choose dataset root directory."
+            Title = "Choose dataset root directory"
         };
 
         var selectedDirectory = await dialog.ShowAsync(new Window());
@@ -154,13 +169,15 @@ public class MainWindowViewModel : ViewModelBase
         var tags = loadedImages.SelectMany(x => x.Tags, (image, tag) => new { Image = image, Tag = tag })
             .GroupBy(x => x.Tag.Value, x => x.Image)
             .ToList();
-        
+
+        _globalTags.Clear();
         _globalTags.AddOrUpdate(tags.Select(x => new GlobalTagViewModel(x.Key, x.Count())));
 
         CurrentSelectedImage = FilteredImages.First();
         CurrentSelectedTag = CurrentSelectedImage.Tags.FirstOrDefault();
 
         this.RaisePropertyChanged(nameof(CountText));
+        this.RaisePropertyChanged(nameof(TagCountText));
     }
 
     private async Task SaveAllAsync()
