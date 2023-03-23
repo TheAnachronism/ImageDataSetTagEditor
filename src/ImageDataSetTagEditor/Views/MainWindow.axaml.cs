@@ -50,6 +50,8 @@ public partial class MainWindow : Window
     private void TagListBox_OnSelectionChanged(object? sender, SelectionChangedEventArgs e)
     {
         if (sender is not ListBox listBox) return;
+        if (e.AddedItems.Count > 0 && e.AddedItems[0] is string) return;
+
         if (e.AddedItems.Cast<TagViewModel>().SingleOrDefault() is not { } tagViewModel) return;
 
         listBox.ScrollIntoView(listBox.ItemCount - 1);
@@ -57,6 +59,9 @@ public partial class MainWindow : Window
         if (listBox.GetVisualDescendants()
                 .SingleOrDefault(x => x is TextBox { DataContext: TagViewModel tag } && tag == tagViewModel)
             is not TextBox textBox) return;
+
+        ViewModel!.CurrentSelectedImage?.SetCurrentEditedTag((TagViewModel)textBox.DataContext!);
+        ViewModel!.RefreshSuggestions();
 
         textBox.Focus();
     }
@@ -78,5 +83,10 @@ public partial class MainWindow : Window
             var index = images.IndexOf(ViewModel.CurrentSelectedImage);
             ViewModel.CurrentSelectedImage = index < images.Count - 1 ? images[index + 1] : images.First();
         }
+    }
+
+    private void Suggestion_OnTapped(object? sender, RoutedEventArgs e)
+    {
+        throw new System.NotImplementedException();
     }
 }

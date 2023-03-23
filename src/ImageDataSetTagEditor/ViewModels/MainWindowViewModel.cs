@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Reactive;
@@ -20,18 +19,24 @@ public class MainWindowViewModel : ViewModelBase
     private GlobalTagViewModel? _selectedGlobalTag;
     private string _currentImageSearchTerm = string.Empty;
     private string _currentTagSearchTerm = string.Empty;
+    private string? _currentEditedTagValue = string.Empty;
+    private string? _currentSelectedSuggestion = string.Empty;
 
     public string CountText => $"{_images.Count} Images";
     public string TagCountText => $"{_globalTags.Count} distinct tags";
 
     private readonly SourceCache<ImageViewModel, string> _images = new(x => x.ImagePath);
     private readonly SourceCache<GlobalTagViewModel, string> _globalTags = new(x => x.Value);
+    private readonly SourceCache<string, string> _addedTagSuggestions = new(x => x);
 
     public IObservableCollection<ImageViewModel> FilteredImages { get; } =
         new ObservableCollectionExtended<ImageViewModel>();
 
     public IObservableCollection<GlobalTagViewModel> FilteredTags { get; } =
         new ObservableCollectionExtended<GlobalTagViewModel>();
+
+    public IObservableCollection<string> AddedTagSuggestions { get; set; } =
+        new ObservableCollectionExtended<string>();
 
     public string CurrentImageSearchTerm
     {
@@ -51,6 +56,22 @@ public class MainWindowViewModel : ViewModelBase
             this.RaiseAndSetIfChanged(ref _currentTagSearchTerm, value);
             _globalTags.Refresh();
         }
+    }
+
+    public string? CurrentEditedTagValue
+    {
+        get => _currentEditedTagValue;
+        set
+        {
+            this.RaiseAndSetIfChanged(ref _currentEditedTagValue, value);
+            _addedTagSuggestions.Refresh();
+        }
+    }
+
+    public string? CurrentSelectedSuggestion
+    {
+        get => _currentSelectedSuggestion;
+        set => this.RaiseAndSetIfChanged(ref _currentSelectedSuggestion, value);
     }
 
     public ImageViewModel? CurrentSelectedImage
@@ -96,6 +117,12 @@ public class MainWindowViewModel : ViewModelBase
             .Bind(FilteredTags)
             .Subscribe();
 
+        _addedTagSuggestions.Connect()
+            .Filter(UpdateSuggestions, new ParallelisationOptions(ParallelType.Ordered))
+            .Sort(SortExpressionComparer<string>.Ascending(x => x))
+            .Bind(AddedTagSuggestions)
+            .Subscribe();
+
         LoadImagesCommand = ReactiveCommand.CreateFromTask(LoadImagesAsync);
         SaveAllCommand = ReactiveCommand.CreateFromTask(SaveAllAsync);
         AddTagCommand = ReactiveCommand.Create(AddTag);
@@ -104,6 +131,19 @@ public class MainWindowViewModel : ViewModelBase
         SelectPreviousImageCommand = ReactiveCommand.Create(SelectPreviousImage);
         EnterTagEditCommand = ReactiveCommand.Create(EnterTagEdit);
         RefreshGlobalTagsCommand = ReactiveCommand.Create(RefreshGlobalTags);
+    }
+
+    public void RefreshSuggestions()
+    {
+        _currentEditedTagValue = CurrentSelectedTag?.Value;
+        _addedTagSuggestions.Refresh();
+    }
+
+    private bool UpdateSuggestions(string text)
+    {
+        return _currentEditedTagValue is null ||
+               (text.Contains(_currentEditedTagValue, StringComparison.InvariantCultureIgnoreCase) &&
+                !text.Equals(_currentEditedTagValue, StringComparison.InvariantCultureIgnoreCase));
     }
 
     private bool FilterImages(ImageViewModel image)
@@ -137,6 +177,10 @@ public class MainWindowViewModel : ViewModelBase
 
         _globalTags.Clear();
         _globalTags.AddOrUpdate(tags.Select(x => new GlobalTagViewModel(x.Key, x.Count())));
+
+        _addedTagSuggestions.Clear();
+        _addedTagSuggestions.AddOrUpdate(tags.Select(x => x.Key));
+        _addedTagSuggestions.Refresh();
     }
 
     private async Task LoadImagesAsync()
@@ -157,7 +201,7 @@ public class MainWindowViewModel : ViewModelBase
 
         var loadTasks = files.Select(async x =>
         {
-            var image = new ImageViewModel(x, selectedDirectory);
+            var image = new ImageViewModel(x, selectedDirectory, CreateTag);
             await image.LoadTagsAsync();
             return image;
         }).ToList();
@@ -166,18 +210,21 @@ public class MainWindowViewModel : ViewModelBase
 
         var loadedImages = loadTasks.Select(x => x.Result).ToList();
         _images.AddOrUpdate(loadedImages);
-        var tags = loadedImages.SelectMany(x => x.Tags, (image, tag) => new { Image = image, Tag = tag })
-            .GroupBy(x => x.Tag.Value, x => x.Image)
-            .ToList();
 
-        _globalTags.Clear();
-        _globalTags.AddOrUpdate(tags.Select(x => new GlobalTagViewModel(x.Key, x.Count())));
+        RefreshGlobalTags();
 
         CurrentSelectedImage = FilteredImages.First();
         CurrentSelectedTag = CurrentSelectedImage.Tags.FirstOrDefault();
 
         this.RaisePropertyChanged(nameof(CountText));
         this.RaisePropertyChanged(nameof(TagCountText));
+    }
+
+    private TagViewModel CreateTag(string value)
+    {
+        var tag = new TagViewModel(value);
+        tag.WhenPropertyChanged(x => x.Value, false).Subscribe(x => CurrentEditedTagValue = x.Value);
+        return tag;
     }
 
     private async Task SaveAllAsync()
@@ -189,7 +236,7 @@ public class MainWindowViewModel : ViewModelBase
     {
         if (CurrentSelectedImage?.Tags.Any(x => string.IsNullOrEmpty(x.Value)) == true) return;
 
-        CurrentSelectedImage?.Tags.Add(new TagViewModel(string.Empty));
+        CurrentSelectedImage?.Tags.Add(CreateTag(string.Empty));
         CurrentSelectedTag = CurrentSelectedImage?.Tags.Last();
     }
 

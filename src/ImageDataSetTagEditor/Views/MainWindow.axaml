@@ -17,7 +17,6 @@
         <KeyBinding Gesture="Ctrl+Subtract" Command="{Binding RemoveTagCommand}" />
         <KeyBinding Gesture="Ctrl+Enter" Command="{Binding EnterTagEditCommand}" />
         <KeyBinding Gesture="Ctrl+F" Command="{Binding FocusSearchBoxCommand}" />
-
     </Window.KeyBindings>
     <i:Interaction.Behaviors>
         <EventTriggerBehavior EventName="Closing">
@@ -100,8 +99,20 @@
                             </ListBox.Styles>
                             <ListBox.ItemTemplate>
                                 <DataTemplate>
-                                    <TextBox GotFocus="TagTextBox_OnGotFocus" Text="{Binding Value}"
-                                             HorizontalContentAlignment="Left" />
+                                    <Grid RowDefinitions="Auto, Auto">
+                                        <TextBox GotFocus="TagTextBox_OnGotFocus" Text="{Binding Value}"
+                                                 HorizontalContentAlignment="Left" />
+                                        <ListBox Grid.Row="1" Name="SuggestionsListBox"
+                                                 Items="{Binding DataContext.AddedTagSuggestions, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Window}}"
+                                                 SelectedItem="{Binding DataContext.CurrentSelectedSuggestion, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Window}}"
+                                                 IsVisible="{Binding SuggestTags}">
+                                            <ListBox.ItemTemplate>
+                                                <DataTemplate>
+                                                    <TextBlock Text="{Binding }" Tapped="Suggestion_OnTapped" />
+                                                </DataTemplate>
+                                            </ListBox.ItemTemplate>
+                                        </ListBox>
+                                    </Grid>
                                 </DataTemplate>
                             </ListBox.ItemTemplate>
                         </ListBox>
@@ -122,7 +133,8 @@
                         <TextBox Grid.Column="0" Name="GlobalTagSearchBox" DockPanel.Dock="Left"
                                  Text="{Binding CurrentTagSearchTerm}"
                                  Watermark="Search Tags..." HorizontalAlignment="Stretch" />
-                        <Button Grid.Column="1" DockPanel.Dock="Right" Content="Refresh" Command="{Binding RefreshGlobalTagsCommand}" />
+                        <Button Grid.Column="1" DockPanel.Dock="Right" Content="Refresh"
+                                Command="{Binding RefreshGlobalTagsCommand}" />
                     </Grid>
                     <ListBox Grid.Row="1" Items="{Binding FilteredTags}"
                              SelectedItem="{Binding SelectedGlobalTag}"
