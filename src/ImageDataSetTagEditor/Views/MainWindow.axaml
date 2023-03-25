@@ -1,0 +1,96 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:ImageDataSetTagEditor.ViewModels"
+        xmlns:local="using:ImageDataSetTagEditor"
+        xmlns:interaction="clr-namespace:Avalonia.Xaml.Interactivity;assembly=Avalonia.Xaml.Interactivity"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+        x:Class="ImageDataSetTagEditor.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Icon="/Assets/avalonia-logo.ico"
+        Title="ImageDataSetTagEditor">
+    <Window.KeyBindings>
+        <KeyBinding Gesture="Ctrl+Up" Command="{Binding SelectedPreviousImageCommand}" />
+        <KeyBinding Gesture="Ctrl+Down" Command="{Binding SelectedNextImageCommand}" />
+    </Window.KeyBindings>
+    <interaction:Interaction.Behaviors>
+        <EventTriggerBehavior EventName="Closing">
+            <InvokeCommandAction Command="{Binding SaveAllCommand}" />
+        </EventTriggerBehavior>
+    </interaction:Interaction.Behaviors>
+    <Window.Resources>
+        <local:BitmapAssetValueConverter x:Key="VariableImage" />
+    </Window.Resources>
+    <Design.DataContext>
+        <!-- This only sets the DataContext for the previewer in an IDE,
+             to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
+        <vm:MainWindowViewModel />
+    </Design.DataContext>
+    <Grid RowDefinitions="Auto, *">
+        <Grid Grid.Row="0" ColumnDefinitions="10*, Auto">
+            <Menu Grid.Column="0">
+                <MenuItem Header="Load Dataset" Command="{Binding LoadImagesCommand}" />
+            </Menu>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
+                <StackPanel.Styles>
+                    <Style Selector="TextBlock">
+                        <Setter Property="Margin" Value="5 0" />
+                        <Setter Property="VerticalAlignment" Value="Center" />
+                    </Style>
+                </StackPanel.Styles>
+                <TextBlock Text="{Binding ImageCountText}" />
+                <TextBlock Text="{Binding TagCountText}" />
+            </StackPanel>
+        </Grid>
+        <Border Grid.Row="1" BorderBrush="Black" BorderThickness="0 1 0 0">
+            <Grid ColumnDefinitions="*,*,*">
+                <Grid Grid.Column="0" RowDefinitions="Auto, *">
+                    <TextBox Name="ImageSearchTextBox" Grid.Row="0" Text="{Binding CurrentImageSearchTerm}"
+                             Watermark="Search Images..." />
+                    <ListBox Grid.Row="1" Items="{Binding FilteredImages}"
+                             SelectedItem="{Binding CurrentSelectedImage}"
+                             SelectionMode="Single"
+                             SelectionChanged="ImageListBox_OnSelectionChanged">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Border CornerRadius="1" BorderBrush="Black">
+                                    <Grid ColumnDefinitions="*,*,*">
+                                        <Image Grid.Column="0"
+                                               Source="{Binding ImagePath, Converter={StaticResource  VariableImage}}"
+                                               MaxHeight="150" />
+                                        <TextBlock Grid.Column="1" Text="{Binding Name}"
+                                                   HorizontalAlignment="Center"
+                                                   VerticalAlignment="Center" />
+                                        <TextBlock Grid.Column="2" Text="{Binding Tags.Count}"
+                                                   HorizontalAlignment="Center"
+                                                   VerticalAlignment="Center"/>
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </Grid>
+                
+                <Grid Grid.Column="1" RowDefinitions="500, 1, *">
+                    <Border Grid.Row="0"
+                            Height="500"
+                            Background="LightGrey"
+                            CornerRadius="5">
+                        <Image Height="500"
+                               Source="{Binding CurrentSelectedImage.ImagePath, Converter={StaticResource VariableImage}, ConverterParameter=500}"/>
+                    </Border>
+                    <Grid Grid.Row="2" ColumnDefinitions="8*, Auto" RowDefinitions="*">
+                        <ListBox Grid.Column="0" Items="{Binding CurrentSelectedImage.Tags}"
+                                 SelectedItem="{Binding CurrentSelectedTag}"
+                                 SelectionMode="Single"
+                                 SelectedIndex="0"
+                                 SelectionChanged="TagListBox_OnSelectionChanged">
+                            
+                        </ListBox>
+                    </Grid>
+                </Grid>
+            </Grid>
+        </Border>
+    </Grid>
+</Window>

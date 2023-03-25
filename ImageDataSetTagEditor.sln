@@ -1,0 +1,21 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{3EBE6304-AB86-4AE3-969D-7C6C019EFFE6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ImageDataSetTagEditor", "src\ImageDataSetTagEditor\ImageDataSetTagEditor.csproj", "{BE876FAB-E867-40F4-BB8F-6CFD65322FCD}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{BE876FAB-E867-40F4-BB8F-6CFD65322FCD} = {3EBE6304-AB86-4AE3-969D-7C6C019EFFE6}
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{BE876FAB-E867-40F4-BB8F-6CFD65322FCD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BE876FAB-E867-40F4-BB8F-6CFD65322FCD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BE876FAB-E867-40F4-BB8F-6CFD65322FCD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BE876FAB-E867-40F4-BB8F-6CFD65322FCD}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
