@@ -9,6 +9,13 @@ Can manage a dataset in subdirectories, where each caption is split into tags or
 These captions are put into a text file next to the image, named the same way. So image `0000.jpg` has a caption
 file `0000.txt` with something like `person, woman, sitting on a chair`.
 
+
+## Running
+
+Just head over to the [releases page](https://github.com/TheAnachronism/ImageDataSetTagEditor/releases), grab the latest one and download the executable you need.
+Everything of the application is contained in one file, so nothing else is required.
+When opening, a console window will appear in the background. That is currently because of .NET and Avalonia, and I haven't figured out yet, how to get it away -.-
+
 ## Key bindings and other features
 
 As I often accelerate my work with key bindings, I've added some here as well:
