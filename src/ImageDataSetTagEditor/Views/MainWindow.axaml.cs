@@ -5,7 +5,9 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.VisualTree;
+using DynamicData;
 using ImageDataSetTagEditor.ViewModels;
+using ReactiveUI;
 
 namespace ImageDataSetTagEditor.Views;
 
@@ -43,9 +45,6 @@ public partial class MainWindow : Window
 
         if (e.AddedItems.Cast<TagViewModel>().SingleOrDefault() is not { } tagViewModel) return;
 
-        // for new tag
-        // tagList.ScrollIntoView(tagList.ItemCount - 1);
-
         if (tagList.GetVisualDescendants()
                 .SingleOrDefault(x => x is TextBox { DataContext: TagViewModel tag } && tag == tagViewModel) is not
             TextBox textBox) return;
@@ -55,7 +54,21 @@ public partial class MainWindow : Window
 
     private void GlobalTag_OnDoubleTapped(object? sender, RoutedEventArgs e)
     {
-        // throw new System.NotImplementedException();
+        if (sender is not Border { DataContext: GlobalTagViewModel } border) return;
+
+        var clickedTag = (GlobalTagViewModel)border.DataContext;
+
+        var images = ViewModel.FilteredImages.Where(x => x.Tags.Any(y => y.Value.Equals(clickedTag.Tag))).ToList();
+        if (!images.Any())
+            return;
+
+        if (images.Count == 1 || ViewModel.CurrentSelectedImage is null)
+            ViewModel.CurrentSelectedImage = images.FirstOrDefault();
+        else
+        {
+            var index = images.IndexOf(ViewModel.CurrentSelectedImage);
+            ViewModel.CurrentSelectedImage = index < images.Count - 1 ? images[index + 1] : images.FirstOrDefault();
+        }
     }
 
     private void Tag_OnGotFocus(object? sender, GotFocusEventArgs e)
