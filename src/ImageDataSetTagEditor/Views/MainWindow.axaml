@@ -151,6 +151,13 @@
                                         <TextBlock Grid.Column="1" Text="{Binding ImageCountText}"
                                                    HorizontalAlignment="Center" VerticalAlignment="Center" />
                                     </Grid>
+                                    <Border.ContextMenu>
+                                        <ContextMenu>
+                                            <MenuItem Header="Select next image with tag" Click="SelectNextImageWithGlobalTag_OnClick"/>
+                                            <MenuItem Header="Select previous image with tag" Click="SelectPreviousImageWithGlobalTag_OnClick"/>
+                                            <MenuItem Header="Apply to all images" Click="ApplyGlobalTagToAllImages_OnClick"/>
+                                        </ContextMenu>
+                                    </Border.ContextMenu>
                                 </Border>
                             </DataTemplate>
                         </ListBox.ItemTemplate>

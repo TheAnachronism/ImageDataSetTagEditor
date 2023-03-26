@@ -54,21 +54,7 @@ public partial class MainWindow : Window
 
     private void GlobalTag_OnDoubleTapped(object? sender, RoutedEventArgs e)
     {
-        if (sender is not Border { DataContext: GlobalTagViewModel } border) return;
-
-        var clickedTag = (GlobalTagViewModel)border.DataContext;
-
-        var images = ViewModel.FilteredImages.Where(x => x.Tags.Any(y => y.Value.Equals(clickedTag.Tag))).ToList();
-        if (!images.Any())
-            return;
-
-        if (images.Count == 1 || ViewModel.CurrentSelectedImage is null)
-            ViewModel.CurrentSelectedImage = images.FirstOrDefault();
-        else
-        {
-            var index = images.IndexOf(ViewModel.CurrentSelectedImage);
-            ViewModel.CurrentSelectedImage = index < images.Count - 1 ? images[index + 1] : images.FirstOrDefault();
-        }
+        ViewModel.SelectNextImageWithGlobalTag();
     }
 
     private void Tag_OnGotFocus(object? sender, GotFocusEventArgs e)
@@ -111,4 +97,13 @@ public partial class MainWindow : Window
         if (!ViewModel.CurrentSelectedTag.Value.Equals(suggestion, StringComparison.InvariantCultureIgnoreCase))
             ViewModel.CurrentSelectedTag.Value = suggestion;
     }
+
+    private void SelectNextImageWithGlobalTag_OnClick(object? sender, RoutedEventArgs e) =>
+        ViewModel.SelectNextImageWithGlobalTag();
+
+    private void SelectPreviousImageWithGlobalTag_OnClick(object? sender, RoutedEventArgs e) =>
+        ViewModel.SelectPreviousImageWithGlobalTag();
+
+    private void ApplyGlobalTagToAllImages_OnClick(object? sender, RoutedEventArgs e) =>
+        ViewModel.ApplyCurrentGlobalTagToAllImages();
 }

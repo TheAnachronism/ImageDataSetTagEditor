@@ -94,6 +94,9 @@ public class MainWindowViewModel : ViewModelBase
     public ReactiveCommand<Unit, Unit> CloseSuggestionsCommand { get; set; }
     public ReactiveCommand<Unit, Unit> FocusSearchBoxCommand { get; set; } = ReactiveCommand.Create(() => { });
     public ReactiveCommand<Unit, Unit> FocusTagSearchBoxCommand { get; set; } = ReactiveCommand.Create(() => { });
+    public ReactiveCommand<Unit, Unit> SelectNextImageWithGlobalTagCommand { get; set; }
+    public ReactiveCommand<Unit, Unit> SelectPreviousImageWithGlobalTagCommand { get; set; }
+    public ReactiveCommand<Unit, Unit> ApplyCurrentGlobalTagToAllImagesCommand { get; set; }
 
     public MainWindowViewModel()
     {
@@ -109,6 +112,9 @@ public class MainWindowViewModel : ViewModelBase
         SelectPreviousTagCommand = ReactiveCommand.Create(HandleSelectPreviousTag);
         SetSuggestionCommand = ReactiveCommand.Create(SetSuggestion);
         CloseSuggestionsCommand = ReactiveCommand.Create(CloseSuggestions);
+        SelectNextImageWithGlobalTagCommand = ReactiveCommand.Create(SelectNextImageWithGlobalTag);
+        SelectPreviousImageWithGlobalTagCommand = ReactiveCommand.Create(SelectPreviousImageWithGlobalTag);
+        ApplyCurrentGlobalTagToAllImagesCommand = ReactiveCommand.Create(ApplyCurrentGlobalTagToAllImages);
 
         _images.Connect()
             .Filter(ImageFilter, new ParallelisationOptions(ParallelType.Parallelise))
@@ -132,6 +138,60 @@ public class MainWindowViewModel : ViewModelBase
 
     public void RefreshSuggestions() => _globalTags.Refresh();
 
+    public void ApplyCurrentGlobalTagToAllImages()
+    {
+        if (CurrentSelectedGlobalTag is null) return;
+        
+        var images = _images.Items.Where(i => !i.Tags.Any(t => t.Value.Equals(CurrentSelectedGlobalTag.Tag, StringComparison.InvariantCultureIgnoreCase)));
+        foreach (var image in images)
+        {
+            var tag = new TagViewModel(CurrentSelectedGlobalTag.Tag);
+            tag.OnValueChanged += RefreshSuggestions;
+            
+            image.Tags.Add(tag);
+        }
+        
+        RebuildGlobalTags();
+    }
+
+    public void SelectNextImageWithGlobalTag()
+    {
+        if (CurrentSelectedGlobalTag is null) return;
+        
+        var images = FilteredImages.Where(i =>
+            i.Tags.Any(t => t.Value.Equals(CurrentSelectedGlobalTag.Tag, StringComparison.InvariantCultureIgnoreCase))).ToList();
+        
+        if (!images.Any())
+            return;
+
+        if (images.Count == 1 || CurrentSelectedImage is null)
+            CurrentSelectedImage = images.FirstOrDefault();
+        else
+        {
+            var index = images.IndexOf(CurrentSelectedImage);
+            CurrentSelectedImage = index < images.Count - 1 ? images[index + 1] : images.FirstOrDefault();
+        }
+    }
+
+    public void SelectPreviousImageWithGlobalTag()
+    {
+        if (CurrentSelectedGlobalTag is null) return;
+        
+        var images = FilteredImages.Where(i =>
+            i.Tags.Any(t => t.Value.Equals(CurrentSelectedGlobalTag.Tag, StringComparison.InvariantCultureIgnoreCase))).ToList();
+        
+        if (!images.Any())
+            return;
+
+        if (images.Count == 1 || CurrentSelectedImage is null)
+            CurrentSelectedImage = images.LastOrDefault();
+        else
+        {
+            var index = images.IndexOf(CurrentSelectedImage);
+            CurrentSelectedImage = index > 0 ? images[index - 1] : images.LastOrDefault();
+        }
+    }
+    
     private void SetSuggestion()
     {
         if (CurrentSelectedTag is null || CurrentSelectedSuggestion is null ||
