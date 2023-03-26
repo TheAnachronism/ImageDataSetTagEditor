@@ -5,6 +5,7 @@ using System.Reactive;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using DynamicData;
+using DynamicData.Alias;
 using DynamicData.Binding;
 using DynamicData.PLinq;
 using ReactiveUI;
@@ -23,6 +24,7 @@ public class MainWindowViewModel : ViewModelBase
     private GlobalTagViewModel? _currentSelectedGlobalTag;
     private string _currentImageSearchTerm = string.Empty;
     private string _currentTagSearchTerm = string.Empty;
+    private string? _currentSelectedSuggestion;
 
     public ImageViewModel? CurrentSelectedImage
     {
@@ -45,17 +47,31 @@ public class MainWindowViewModel : ViewModelBase
     public string CurrentImageSearchTerm
     {
         get => _currentImageSearchTerm;
-        set => this.RaiseAndSetIfChanged(ref _currentImageSearchTerm, value);
+        set
+        {
+            this.RaiseAndSetIfChanged(ref _currentImageSearchTerm, value);
+            _images.Refresh();
+        }
     }
 
     public string CurrentTagSearchTerm
     {
         get => _currentTagSearchTerm;
-        set => this.RaiseAndSetIfChanged(ref _currentTagSearchTerm, value);
+        set
+        {
+            this.RaiseAndSetIfChanged(ref _currentTagSearchTerm, value);
+            _globalTags.Refresh();
+        }
+    }
+
+    public string? CurrentSelectedSuggestion
+    {
+        get => _currentSelectedSuggestion;
+        set => this.RaiseAndSetIfChanged(ref _currentSelectedSuggestion, value);
     }
 
     public string ImageCountText => $"{_images.Count} Images";
-    public string TagCountText => $"{_globalTags.Count} Images";
+    public string TagCountText => $"{_globalTags.Count} Tags";
 
     public IObservableCollection<ImageViewModel> FilteredImages { get; } =
         new ObservableCollectionExtended<ImageViewModel>();
@@ -71,14 +87,28 @@ public class MainWindowViewModel : ViewModelBase
     public ReactiveCommand<Unit, Unit> LoadImagesCommand { get; set; }
     public ReactiveCommand<Unit, Unit> AddTagCommand { get; set; }
     public ReactiveCommand<Unit, Unit> RemoveTagCommand { get; set; }
-    
+    public ReactiveCommand<Unit, TagViewModel?> EnterEditTagCommand { get; set; }
+    public ReactiveCommand<Unit, Unit> SelectNextTagCommand { get; set; }
+    public ReactiveCommand<Unit, Unit> SelectPreviousTagCommand { get; set; }
+    public ReactiveCommand<Unit, Unit> SetSuggestionCommand { get; set; }
+    public ReactiveCommand<Unit, Unit> CloseSuggestionsCommand { get; set; }
+    public ReactiveCommand<Unit, Unit> FocusSearchBoxCommand { get; set; } = ReactiveCommand.Create(() => { });
+    public ReactiveCommand<Unit, Unit> FocusTagSearchBoxCommand { get; set; } = ReactiveCommand.Create(() => { });
+
     public MainWindowViewModel()
     {
         SelectedPreviousImageCommand = ReactiveCommand.Create(SelectedPreviousImage);
         SelectedNextImageCommand = ReactiveCommand.Create(SelectedNextImage);
         SaveAllCommand = ReactiveCommand.CreateFromTask(SaveAllAsync);
         LoadImagesCommand = ReactiveCommand.CreateFromTask(LoadImagesAsync);
+        AddTagCommand = ReactiveCommand.Create(AddTag);
         RemoveTagCommand = ReactiveCommand.Create(RemoveTag);
+        EnterEditTagCommand =
+            ReactiveCommand.Create(() => CurrentSelectedTag = CurrentSelectedImage?.Tags.FirstOrDefault());
+        SelectNextTagCommand = ReactiveCommand.Create(HandleSelectNextTag);
+        SelectPreviousTagCommand = ReactiveCommand.Create(HandleSelectPreviousTag);
+        SetSuggestionCommand = ReactiveCommand.Create(SetSuggestion);
+        CloseSuggestionsCommand = ReactiveCommand.Create(CloseSuggestions);
 
         _images.Connect()
             .Filter(ImageFilter, new ParallelisationOptions(ParallelType.Parallelise))
@@ -91,6 +121,89 @@ public class MainWindowViewModel : ViewModelBase
             .Sort(SortExpressionComparer<GlobalTagViewModel>.Descending(x => x.ImageCount).ThenByAscending(x => x.Tag))
             .Bind(FilteredTags)
             .Subscribe();
+
+        _globalTags.Connect()
+            .Filter(FilterSuggestion, new ParallelisationOptions(ParallelType.Parallelise))
+            .Sort(SortExpressionComparer<GlobalTagViewModel>.Ascending(x => x.Tag))
+            .Select(x => x.Tag)
+            .Bind(TagSuggestions)
+            .Subscribe();
+    }
+
+    public void RefreshSuggestions() => _globalTags.Refresh();
+
+    private void SetSuggestion()
+    {
+        if (CurrentSelectedTag is null || CurrentSelectedSuggestion is null ||
+            !CurrentSelectedTag.ShowAutocomplete) return;
+
+        if (CurrentSelectedTag.Value.Equals(CurrentSelectedSuggestion,
+                StringComparison.InvariantCultureIgnoreCase)) return;
+
+        CurrentSelectedTag.Value = CurrentSelectedSuggestion;
+        RebuildGlobalTags();
+    }
+
+    private void CloseSuggestions()
+    {
+        if (CurrentSelectedTag is null || !CurrentSelectedTag.ShowAutocomplete) return;
+
+        CurrentSelectedTag.ShowAutocomplete = false;
+    }
+
+    private void HandleSelectPreviousTag()
+    {
+        if (CurrentSelectedImage is null || CurrentSelectedTag is null) return;
+
+        if (TagSuggestions.Count > 0 && CurrentSelectedTag.ShowAutocomplete && CurrentSelectedSuggestion is not null)
+        {
+            var index = TagSuggestions.IndexOf(CurrentSelectedSuggestion);
+            CurrentSelectedSuggestion = index > 0 ? TagSuggestions[index - 1] : null;
+        }
+        else
+            SelectPreviousTag();
+    }
+
+    private void SelectPreviousTag()
+    {
+        if (CurrentSelectedImage is null || CurrentSelectedTag is null) return;
+
+        var index = CurrentSelectedImage.Tags.IndexOf(CurrentSelectedTag);
+        CurrentSelectedTag = index <= 0
+            ? CurrentSelectedImage.Tags.LastOrDefault()
+            : CurrentSelectedImage.Tags[index - 1];
+    }
+
+    private void HandleSelectNextTag()
+    {
+        if (CurrentSelectedImage is null || CurrentSelectedTag is null) return;
+
+        if (TagSuggestions.Count > 0 && CurrentSelectedTag.ShowAutocomplete)
+        {
+            if (CurrentSelectedSuggestion is null)
+            {
+                CurrentSelectedSuggestion = TagSuggestions.FirstOrDefault();
+                return;
+            }
+
+            var index = TagSuggestions.IndexOf(CurrentSelectedSuggestion);
+            if (index < TagSuggestions.Count - 1)
+                CurrentSelectedSuggestion = TagSuggestions[index + 1];
+            else
+                SelectNextTag();
+        }
+        else
+            SelectNextTag();
+    }
+
+    private void SelectNextTag()
+    {
+        if (CurrentSelectedImage is null || CurrentSelectedTag is null) return;
+
+        var index = CurrentSelectedImage.Tags.IndexOf(CurrentSelectedTag);
+        CurrentSelectedTag = index >= CurrentSelectedImage.Tags.Count - 1
+            ? CurrentSelectedImage.Tags.FirstOrDefault()
+            : CurrentSelectedImage.Tags[index + 1];
     }
 
     private bool ImageFilter(ImageViewModel currentImage)
@@ -107,6 +220,13 @@ public class MainWindowViewModel : ViewModelBase
 
         var terms = _currentTagSearchTerm.Split(" ").Where(x => !string.IsNullOrEmpty(x));
         return terms.All(x => currentGlobalTag.Tag.Contains(x, StringComparison.InvariantCultureIgnoreCase));
+    }
+
+    private bool FilterSuggestion(GlobalTagViewModel currentGlobalTag)
+    {
+        return string.IsNullOrEmpty(CurrentSelectedTag?.Value) ||
+               (currentGlobalTag.Tag.Contains(CurrentSelectedTag.Value, StringComparison.InvariantCultureIgnoreCase) &&
+                !currentGlobalTag.Tag.Equals(CurrentSelectedTag.Value, StringComparison.InvariantCultureIgnoreCase));
     }
 
     private async Task LoadImagesAsync()
@@ -133,9 +253,12 @@ public class MainWindowViewModel : ViewModelBase
 
             foreach (var tag in tags)
             {
-                var global = _globalTags.Items.SingleOrDefault(x =>
-                                 string.Equals(x.Tag, tag, StringComparison.InvariantCultureIgnoreCase)) ??
-                             new GlobalTagViewModel(tag, 0);
+                tag.OnValueChanged += _globalTags.Refresh;
+
+                var global = _globalTags.Items.SingleOrDefault(globalTag =>
+                                 string.Equals(globalTag.Tag, tag.Value,
+                                     StringComparison.InvariantCultureIgnoreCase)) ??
+                             new GlobalTagViewModel(tag.Value, 0);
                 global.ImageCount++;
                 _globalTags.AddOrUpdate(global);
             }
@@ -148,16 +271,48 @@ public class MainWindowViewModel : ViewModelBase
         var loadedImages = loadTasks.Select(x => x.Result);
         _images.AddOrUpdate(loadedImages);
 
-        CurrentSelectedImage = FilteredImages.First();
-        CurrentSelectedGlobalTag = FilteredTags.First();
+        CurrentSelectedImage = FilteredImages.FirstOrDefault();
+        CurrentSelectedGlobalTag = FilteredTags.FirstOrDefault();
 
         this.RaisePropertyChanged(nameof(ImageCountText));
+        this.RaisePropertyChanged(nameof(TagCountText));
+    }
+
+    public void RebuildGlobalTags()
+    {
+        var tags = _images.Items.SelectMany(x => x.Tags, (image, tag) => new { Iamge = image, Tag = tag })
+            .GroupBy(x => x.Tag.Value, x => x.Iamge)
+            .ToList();
+
+        _globalTags.Clear();
+        foreach (var tag in tags)
+        {
+            var global = _globalTags.Items.SingleOrDefault(globalTag =>
+                             string.Equals(globalTag.Tag, tag.Key,
+                                 StringComparison.InvariantCultureIgnoreCase)) ??
+                         new GlobalTagViewModel(tag.Key, 0);
+            global.ImageCount += tag.Count();
+            _globalTags.AddOrUpdate(global);
+        }
+
+        _globalTags.Refresh();
         this.RaisePropertyChanged(nameof(TagCountText));
     }
 
     private async Task SaveAllAsync()
     {
         foreach (var image in _images.Items) await image.SaveAsync();
+    }
+
+    private void AddTag()
+    {
+        if (CurrentSelectedImage is null) return;
+
+        var newTag = new TagViewModel("New Tag");
+        CurrentSelectedImage.Tags.Add(newTag);
+        CurrentSelectedTag = newTag;
+
+        RebuildGlobalTags();
     }
 
     private void RemoveTag()
@@ -167,10 +322,10 @@ public class MainWindowViewModel : ViewModelBase
         var image = CurrentSelectedImage;
         var index = image.Tags.IndexOf(CurrentSelectedTag);
 
-        image.Tags.Remove(CurrentSelectedTag);
         var global = _globalTags.Items.SingleOrDefault(x =>
             string.Equals(x.Tag, CurrentSelectedTag.Value, StringComparison.InvariantCultureIgnoreCase));
 
+        image.Tags.Remove(CurrentSelectedTag);
         if (global is not null)
             if (global.ImageCount == 1)
                 _globalTags.Remove(global);
@@ -180,6 +335,7 @@ public class MainWindowViewModel : ViewModelBase
         if (!image.Tags.Any()) return;
 
         CurrentSelectedTag = image.Tags[index == image.Tags.Count ? index - 1 : index];
+        this.RaisePropertyChanged(nameof(TagCountText));
     }
 
     private void SelectedNextImage()
@@ -201,7 +357,7 @@ public class MainWindowViewModel : ViewModelBase
         if (CurrentSelectedImage is null) return;
 
         var index = FilteredImages.IndexOf(CurrentSelectedImage);
-        
+
         CurrentSelectedImage = index > 0 ? FilteredImages[index - 1] : FilteredImages.Last();
     }
 }

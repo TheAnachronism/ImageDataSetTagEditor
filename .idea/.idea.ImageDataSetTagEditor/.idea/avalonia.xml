@@ -5,6 +5,7 @@
       <map>
         <entry key="src/ImageDataSetTagEditor/App.axaml" value="src/ImageDataSetTagEditor/ImageDataSetTagEditor.csproj" />
         <entry key="src/ImageDataSetTagEditor/Views/MainWindow.axaml" value="src/ImageDataSetTagEditor/ImageDataSetTagEditor.csproj" />
+        <entry key="src/ImageDataSetTagEditor/Views/TagListControl.axaml" value="src/ImageDataSetTagEditor/ImageDataSetTagEditor.csproj" />
       </map>
     </option>
   </component>
