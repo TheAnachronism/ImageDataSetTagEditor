@@ -64,21 +64,21 @@
                                                    VerticalAlignment="Center" />
                                         <TextBlock Grid.Column="2" Text="{Binding Tags.Count}"
                                                    HorizontalAlignment="Center"
-                                                   VerticalAlignment="Center"/>
+                                                   VerticalAlignment="Center" />
                                     </Grid>
                                 </Border>
                             </DataTemplate>
                         </ListBox.ItemTemplate>
                     </ListBox>
                 </Grid>
-                
+
                 <Grid Grid.Column="1" RowDefinitions="500, 1, *">
                     <Border Grid.Row="0"
                             Height="500"
-                            Background="LightGrey"
+                            Background="LightGray"
                             CornerRadius="5">
                         <Image Height="500"
-                               Source="{Binding CurrentSelectedImage.ImagePath, Converter={StaticResource VariableImage}, ConverterParameter=500}"/>
+                               Source="{Binding CurrentSelectedImage.ImagePath, Converter={StaticResource VariableImage}, ConverterParameter=500}" />
                     </Border>
                     <Grid Grid.Row="2" ColumnDefinitions="8*, Auto" RowDefinitions="*">
                         <ListBox Grid.Column="0" Items="{Binding CurrentSelectedImage.Tags}"
@@ -86,9 +86,43 @@
                                  SelectionMode="Single"
                                  SelectedIndex="0"
                                  SelectionChanged="TagListBox_OnSelectionChanged">
-                            
+
                         </ListBox>
+
+                        <StackPanel Grid.Column="1" Orientation="Vertical">
+                            <Button Height="50" Width="50" Command="{Binding AddTagCommand}">
+                                <Image Source="{SvgImage /Assets/plus-square-fill.svg}" />
+                            </Button>
+                            <Button Height="50" Width="50" Command="{Binding RemoveTagCommand}">
+                                <Image Source="{SvgImage /Assets/dash-square-fill.svg}" />
+                            </Button>
+                        </StackPanel>
                     </Grid>
+                </Grid>
+
+                <Grid Grid.Column="2" RowDefinitions="Auto, *">
+                    <TextBox Grid.Row="0" Name="GlobalTagSearchBox" Text="{Binding CurrentTagSearchTerm}"
+                             Watermark="Search Tags..." HorizontalAlignment="Stretch" />
+                    <ListBox Grid.Row="1" Items="{Binding FilteredTags}"
+                             SelectedItem="{Binding CurrentSelectedGlobalTag}" SelectionMode="Single">
+                        <ListBox.Styles>
+                            <Style Selector="ListBoxItem">
+                                <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                            </Style>
+                        </ListBox.Styles>
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <Border DoubleTapped="GlobalTag_OnDoubleTapped">
+                                    <Grid ColumnDefinitions="*,*">
+                                        <TextBlock Grid.Column="0" Text="{Binding Tag}" HorizontalAlignment="Center"
+                                                   VerticalAlignment="Center" />
+                                        <TextBlock Grid.Column="1" Text="{Binding ImageCountText}"
+                                                   HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                    </Grid>
+                                </Border>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
                 </Grid>
             </Grid>
         </Border>

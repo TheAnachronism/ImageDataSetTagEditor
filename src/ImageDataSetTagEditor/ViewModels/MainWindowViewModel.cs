@@ -69,6 +69,8 @@ public class MainWindowViewModel : ViewModelBase
     public ReactiveCommand<Unit, Unit> SelectedNextImageCommand { get; set; }
     public ReactiveCommand<Unit, Unit> SaveAllCommand { get; set; }
     public ReactiveCommand<Unit, Unit> LoadImagesCommand { get; set; }
+    public ReactiveCommand<Unit, Unit> AddTagCommand { get; set; }
+    public ReactiveCommand<Unit, Unit> RemoveTagCommand { get; set; }
     
     public MainWindowViewModel()
     {
@@ -76,7 +78,8 @@ public class MainWindowViewModel : ViewModelBase
         SelectedNextImageCommand = ReactiveCommand.Create(SelectedNextImage);
         SaveAllCommand = ReactiveCommand.CreateFromTask(SaveAllAsync);
         LoadImagesCommand = ReactiveCommand.CreateFromTask(LoadImagesAsync);
-        
+        RemoveTagCommand = ReactiveCommand.Create(RemoveTag);
+
         _images.Connect()
             .Filter(ImageFilter, new ParallelisationOptions(ParallelType.Parallelise))
             .Sort(SortExpressionComparer<ImageViewModel>.Ascending(x => x.ImagePath))
