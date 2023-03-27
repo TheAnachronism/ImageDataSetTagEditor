@@ -104,6 +104,8 @@ public class MainWindowViewModel : ViewModelBase
     public ReactiveCommand<Unit, Unit> SelectNextImageWithGlobalTagCommand { get; set; }
     public ReactiveCommand<Unit, Unit> SelectPreviousImageWithGlobalTagCommand { get; set; }
     public ReactiveCommand<Unit, Unit> ApplyCurrentGlobalTagToAllImagesCommand { get; set; }
+    public ReactiveCommand<string, Unit> MoveTagUpCommand { get; set; }
+    public ReactiveCommand<string, Unit> MoveTagDownCommand { get; set; }
 
     public MainWindowViewModel()
     {
@@ -122,6 +124,8 @@ public class MainWindowViewModel : ViewModelBase
         SelectNextImageWithGlobalTagCommand = ReactiveCommand.Create(SelectNextImageWithGlobalTag);
         SelectPreviousImageWithGlobalTagCommand = ReactiveCommand.Create(SelectPreviousImageWithGlobalTag);
         ApplyCurrentGlobalTagToAllImagesCommand = ReactiveCommand.Create(ApplyCurrentGlobalTagToAllImages);
+        MoveTagUpCommand = ReactiveCommand.Create<string, Unit>(MoveTagUp);
+        MoveTagDownCommand = ReactiveCommand.Create<string, Unit>(MoveTagDown);
 
         _images.Connect()
             .Filter(ImageFilter, new ParallelisationOptions(ParallelType.Parallelise))
@@ -167,14 +171,16 @@ public class MainWindowViewModel : ViewModelBase
         if (CurrentSelectedGlobalTag is null) return;
 
         var images = _images.Items.Where(i =>
-            i.Tags.Any(t => t.Value.Equals(CurrentSelectedGlobalTag.Tag, StringComparison.InvariantCultureIgnoreCase))).ToList();
+                i.Tags.Any(t =>
+                    t.Value.Equals(CurrentSelectedGlobalTag.Tag, StringComparison.InvariantCultureIgnoreCase)))
+            .ToList();
         foreach (var image in images)
         {
             var tags = image.Tags.Where(x =>
                 x.Value.Equals(CurrentSelectedGlobalTag.Tag, StringComparison.InvariantCultureIgnoreCase));
             image.Tags.RemoveMany(tags);
         }
-        
+
         RebuildGlobalTags();
     }
 
@@ -218,6 +224,20 @@ public class MainWindowViewModel : ViewModelBase
             var index = images.IndexOf(CurrentSelectedImage);
             CurrentSelectedImage = index > 0 ? images[index - 1] : images.LastOrDefault();
         }
+    }
+
+    private Unit MoveTagUp(string tag)
+    {
+        if (CurrentSelectedTag is null) return Unit.Default;
+
+        return Unit.Default;
+    }
+
+    private Unit MoveTagDown(string tag)
+    {
+        if (CurrentSelectedTag is null) return Unit.Default;
+        
+        return Unit.Default;
     }
 
     private void SetSuggestion()
