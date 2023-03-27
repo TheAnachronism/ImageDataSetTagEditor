@@ -7,7 +7,6 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.VisualTree;
-using DynamicData;
 using ImageDataSetTagEditor.ViewModels;
 using ReactiveUI;
 
@@ -26,6 +25,16 @@ public partial class MainWindow : Window
 
         ViewModel.FocusSearchBoxCommand.Subscribe(new AnonymousObserver<Unit>(_ => ImageSearchTextBox.Focus()));
         ViewModel.FocusTagSearchBoxCommand.Subscribe(new AnonymousObserver<Unit>(_ => GlobalTagSearchBox.Focus()));
+
+        ViewModel.PropertyChanged += (sender, args) =>
+        {
+            // if (args.PropertyName == nameof(MainWindowViewModel.CurrentSelectedTag))
+            // {
+            //     var textBox = this.GetVisualChildren().SingleOrDefault(x =>
+            //         x is TextBox { DataContext: TagViewModel tag } && tag == ViewModel.CurrentSelectedTag) as TextBox;
+            //     textBox?.Focus();
+            // }
+        };
     }
 
     private MainWindowViewModel ViewModel => (MainWindowViewModel)DataContext!;
@@ -119,4 +128,18 @@ public partial class MainWindow : Window
 
     private void DeleteGlobalTagFromAllImages_OnClick(object? sender, RoutedEventArgs e) =>
         ViewModel.DeleteCurrentGlobalTagFromAllImages();
+
+    private void TagMoveUp_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { DataContext: TagViewModel tag }) return;
+
+        ViewModel.MoveTagUp(tag);
+    }
+
+    private void TagMoveDown_OnClick(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not Button { DataContext: TagViewModel tag }) return;
+
+        ViewModel.MoveTagDown(tag);
+    }
 }

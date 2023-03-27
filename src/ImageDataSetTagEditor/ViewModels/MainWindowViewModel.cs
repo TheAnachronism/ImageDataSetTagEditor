@@ -104,8 +104,8 @@ public class MainWindowViewModel : ViewModelBase
     public ReactiveCommand<Unit, Unit> SelectNextImageWithGlobalTagCommand { get; set; }
     public ReactiveCommand<Unit, Unit> SelectPreviousImageWithGlobalTagCommand { get; set; }
     public ReactiveCommand<Unit, Unit> ApplyCurrentGlobalTagToAllImagesCommand { get; set; }
-    public ReactiveCommand<string, Unit> MoveTagUpCommand { get; set; }
-    public ReactiveCommand<string, Unit> MoveTagDownCommand { get; set; }
+    public ReactiveCommand<Unit, Unit> MoveTagUpCommand { get; set; }
+    public ReactiveCommand<Unit, Unit> MoveTagDownCommand { get; set; }
 
     public MainWindowViewModel()
     {
@@ -124,8 +124,17 @@ public class MainWindowViewModel : ViewModelBase
         SelectNextImageWithGlobalTagCommand = ReactiveCommand.Create(SelectNextImageWithGlobalTag);
         SelectPreviousImageWithGlobalTagCommand = ReactiveCommand.Create(SelectPreviousImageWithGlobalTag);
         ApplyCurrentGlobalTagToAllImagesCommand = ReactiveCommand.Create(ApplyCurrentGlobalTagToAllImages);
-        MoveTagUpCommand = ReactiveCommand.Create<string, Unit>(MoveTagUp);
-        MoveTagDownCommand = ReactiveCommand.Create<string, Unit>(MoveTagDown);
+        MoveTagUpCommand = ReactiveCommand.Create(() =>
+        {
+            if (CurrentSelectedTag is null) return;
+            MoveTagUp(CurrentSelectedTag);
+        });
+
+        MoveTagDownCommand = ReactiveCommand.Create(() =>
+        {
+            if (CurrentSelectedTag is null) return;
+            MoveTagDown(CurrentSelectedTag);
+        });
 
         _images.Connect()
             .Filter(ImageFilter, new ParallelisationOptions(ParallelType.Parallelise))
@@ -226,18 +235,32 @@ public class MainWindowViewModel : ViewModelBase
         }
     }
 
-    private Unit MoveTagUp(string tag)
+    public void MoveTagUp(TagViewModel tag)
     {
-        if (CurrentSelectedTag is null) return Unit.Default;
+        if (CurrentSelectedImage is null) return;
 
-        return Unit.Default;
+        var index = CurrentSelectedImage.Tags.IndexOf(tag);
+        if (index < 1) return;
+
+        var temp = CurrentSelectedImage.Tags[index - 1];
+        CurrentSelectedImage.Tags[index - 1] = tag;
+        CurrentSelectedImage.Tags[index] = temp;
+        
+        CurrentSelectedTag = CurrentSelectedImage.Tags[index - 1];
     }
 
-    private Unit MoveTagDown(string tag)
+    public void MoveTagDown(TagViewModel tag)
     {
-        if (CurrentSelectedTag is null) return Unit.Default;
-        
-        return Unit.Default;
+        if (CurrentSelectedImage is null) return;
+
+        var index = CurrentSelectedImage.Tags.IndexOf(tag);
+        if (index >= CurrentSelectedImage.Tags.Count - 1) return;
+
+        var temp = CurrentSelectedImage.Tags[index + 1];
+        CurrentSelectedImage.Tags[index + 1] = tag;
+        CurrentSelectedImage.Tags[index] = temp;
+
+        CurrentSelectedTag = CurrentSelectedImage.Tags[index + 1];
     }
 
     private void SetSuggestion()
