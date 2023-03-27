@@ -10,7 +10,8 @@
         x:Class="ImageDataSetTagEditor.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         Icon="/Assets/avalonia-logo.ico"
-        Title="ImageDataSetTagEditor">
+        Title="ImageDataSetTagEditor"
+        Closing="Window_OnClosing">
     <Window.KeyBindings>
         <KeyBinding Gesture="Ctrl+Up" Command="{Binding SelectedPreviousImageCommand}" />
         <KeyBinding Gesture="Ctrl+Down" Command="{Binding SelectedNextImageCommand}" />
@@ -20,11 +21,6 @@
         <KeyBinding Gesture="Ctrl+F" Command="{Binding FocusSearchBoxCommand}"/>
         <KeyBinding Gesture="Ctrl+Shift+F" Command="{Binding FocusTagSearchBoxCommand}"/>
     </Window.KeyBindings>
-    <interaction:Interaction.Behaviors>
-        <EventTriggerBehavior EventName="Closing">
-            <InvokeCommandAction Command="{Binding SaveAllCommand}" />
-        </EventTriggerBehavior>
-    </interaction:Interaction.Behaviors>
     <Window.Resources>
         <local:BitmapAssetValueConverter x:Key="VariableImage" />
     </Window.Resources>
@@ -156,6 +152,7 @@
                                             <MenuItem Header="Select next image with tag" Click="SelectNextImageWithGlobalTag_OnClick"/>
                                             <MenuItem Header="Select previous image with tag" Click="SelectPreviousImageWithGlobalTag_OnClick"/>
                                             <MenuItem Header="Apply to all images" Click="ApplyGlobalTagToAllImages_OnClick"/>
+                                            <MenuItem Header="Delete from all images" Click="DeleteGlobalTagFromAllImages_OnClick"/>
                                         </ContextMenu>
                                     </Border.ContextMenu>
                                 </Border>

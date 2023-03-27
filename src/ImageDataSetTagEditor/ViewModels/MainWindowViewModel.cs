@@ -25,6 +25,7 @@ public class MainWindowViewModel : ViewModelBase
     private string _currentImageSearchTerm = string.Empty;
     private string _currentTagSearchTerm = string.Empty;
     private string? _currentSelectedSuggestion;
+    private bool _isSaving;
 
     public ImageViewModel? CurrentSelectedImage
     {
@@ -68,6 +69,12 @@ public class MainWindowViewModel : ViewModelBase
     {
         get => _currentSelectedSuggestion;
         set => this.RaiseAndSetIfChanged(ref _currentSelectedSuggestion, value);
+    }
+
+    public bool IsSaving
+    {
+        get => _isSaving;
+        set => this.RaiseAndSetIfChanged(ref _isSaving, value);
     }
 
     public string ImageCountText => $"{_images.Count} Images";
@@ -141,14 +148,31 @@ public class MainWindowViewModel : ViewModelBase
     public void ApplyCurrentGlobalTagToAllImages()
     {
         if (CurrentSelectedGlobalTag is null) return;
-        
-        var images = _images.Items.Where(i => !i.Tags.Any(t => t.Value.Equals(CurrentSelectedGlobalTag.Tag, StringComparison.InvariantCultureIgnoreCase)));
+
+        var images = _images.Items.Where(i => !i.Tags.Any(t =>
+            t.Value.Equals(CurrentSelectedGlobalTag.Tag, StringComparison.InvariantCultureIgnoreCase)));
         foreach (var image in images)
         {
             var tag = new TagViewModel(CurrentSelectedGlobalTag.Tag);
             tag.OnValueChanged += RefreshSuggestions;
-            
+
             image.Tags.Add(tag);
+        }
+
+        RebuildGlobalTags();
+    }
+
+    public void DeleteCurrentGlobalTagFromAllImages()
+    {
+        if (CurrentSelectedGlobalTag is null) return;
+
+        var images = _images.Items.Where(i =>
+            i.Tags.Any(t => t.Value.Equals(CurrentSelectedGlobalTag.Tag, StringComparison.InvariantCultureIgnoreCase))).ToList();
+        foreach (var image in images)
+        {
+            var tags = image.Tags.Where(x =>
+                x.Value.Equals(CurrentSelectedGlobalTag.Tag, StringComparison.InvariantCultureIgnoreCase));
+            image.Tags.RemoveMany(tags);
         }
         
         RebuildGlobalTags();
@@ -157,10 +181,12 @@ public class MainWindowViewModel : ViewModelBase
     public void SelectNextImageWithGlobalTag()
     {
         if (CurrentSelectedGlobalTag is null) return;
-        
+
         var images = FilteredImages.Where(i =>
-            i.Tags.Any(t => t.Value.Equals(CurrentSelectedGlobalTag.Tag, StringComparison.InvariantCultureIgnoreCase))).ToList();
-        
+                i.Tags.Any(t =>
+                    t.Value.Equals(CurrentSelectedGlobalTag.Tag, StringComparison.InvariantCultureIgnoreCase)))
+            .ToList();
+
         if (!images.Any())
             return;
 
@@ -176,10 +202,12 @@ public class MainWindowViewModel : ViewModelBase
     public void SelectPreviousImageWithGlobalTag()
     {
         if (CurrentSelectedGlobalTag is null) return;
-        
+
         var images = FilteredImages.Where(i =>
-            i.Tags.Any(t => t.Value.Equals(CurrentSelectedGlobalTag.Tag, StringComparison.InvariantCultureIgnoreCase))).ToList();
-        
+                i.Tags.Any(t =>
+                    t.Value.Equals(CurrentSelectedGlobalTag.Tag, StringComparison.InvariantCultureIgnoreCase)))
+            .ToList();
+
         if (!images.Any())
             return;
 
@@ -191,7 +219,7 @@ public class MainWindowViewModel : ViewModelBase
             CurrentSelectedImage = index > 0 ? images[index - 1] : images.LastOrDefault();
         }
     }
-    
+
     private void SetSuggestion()
     {
         if (CurrentSelectedTag is null || CurrentSelectedSuggestion is null ||
@@ -361,7 +389,10 @@ public class MainWindowViewModel : ViewModelBase
 
     private async Task SaveAllAsync()
     {
-        foreach (var image in _images.Items) await image.SaveAsync();
+        IsSaving = true;
+        var saveTasks = _images.Items.Select(async x => await x.SaveAsync());
+        await Task.WhenAll(saveTasks);
+        IsSaving = false;
     }
 
     private void AddTag()

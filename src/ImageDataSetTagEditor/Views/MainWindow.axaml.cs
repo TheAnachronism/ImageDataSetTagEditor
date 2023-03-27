@@ -1,6 +1,8 @@
 using System;
+using System.ComponentModel;
 using System.Linq;
 using System.Reactive;
+using System.Reactive.Linq;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -106,4 +108,15 @@ public partial class MainWindow : Window
 
     private void ApplyGlobalTagToAllImages_OnClick(object? sender, RoutedEventArgs e) =>
         ViewModel.ApplyCurrentGlobalTagToAllImages();
+
+    private async void Window_OnClosing(object? sender, CancelEventArgs e)
+    {
+        if (ViewModel.IsSaving)
+            e.Cancel = true;
+        else
+            await ViewModel.SaveAllCommand.Execute();
+    }
+
+    private void DeleteGlobalTagFromAllImages_OnClick(object? sender, RoutedEventArgs e) =>
+        ViewModel.DeleteCurrentGlobalTagFromAllImages();
 }
