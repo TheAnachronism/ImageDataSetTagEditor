@@ -8,7 +8,6 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.VisualTree;
 using ImageDataSetTagEditor.ViewModels;
-using ReactiveUI;
 
 namespace ImageDataSetTagEditor.Views;
 
@@ -17,24 +16,10 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-    }
-
-    public MainWindow(object? dataContest) : this()
-    {
-        DataContext = dataContest;
+        DataContext = new MainWindowViewModel(this);
 
         ViewModel.FocusSearchBoxCommand.Subscribe(new AnonymousObserver<Unit>(_ => ImageSearchTextBox.Focus()));
         ViewModel.FocusTagSearchBoxCommand.Subscribe(new AnonymousObserver<Unit>(_ => GlobalTagSearchBox.Focus()));
-
-        ViewModel.PropertyChanged += (sender, args) =>
-        {
-            // if (args.PropertyName == nameof(MainWindowViewModel.CurrentSelectedTag))
-            // {
-            //     var textBox = this.GetVisualChildren().SingleOrDefault(x =>
-            //         x is TextBox { DataContext: TagViewModel tag } && tag == ViewModel.CurrentSelectedTag) as TextBox;
-            //     textBox?.Focus();
-            // }
-        };
     }
 
     private MainWindowViewModel ViewModel => (MainWindowViewModel)DataContext!;
@@ -83,9 +68,7 @@ public partial class MainWindow : Window
     {
         if (sender is not TextBox { DataContext: TagViewModel tag }) return;
 
-        if (tag.ShowAutocomplete)
-            ViewModel.RebuildGlobalTags();
-
+        ViewModel.RebuildGlobalTags();
         tag.ShowAutocomplete = false;
     }
 

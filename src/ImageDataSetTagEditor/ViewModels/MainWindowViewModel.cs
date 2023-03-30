@@ -8,16 +8,18 @@ using DynamicData;
 using DynamicData.Alias;
 using DynamicData.Binding;
 using DynamicData.PLinq;
+using ImageDataSetTagEditor.Views;
 using ReactiveUI;
 
 namespace ImageDataSetTagEditor.ViewModels;
 
 public class MainWindowViewModel : ViewModelBase
 {
+    private readonly MainWindow _window;
     private static readonly string[] ValidImageExtensions = { ".jpg", ".jpeg", ".png", ".gif" };
 
     private readonly SourceCache<ImageViewModel, string> _images = new(x => x.ImagePath);
-    private readonly SourceCache<GlobalTagViewModel, string> _globalTags = new(x => x.Tag);
+    private readonly SourceCache<GlobalTagViewModel, string> _globalTags = new(x => x.Tag.ToLowerInvariant());
 
     private ImageViewModel? _currentSelectedImage;
     private TagViewModel? _currentSelectedTag;
@@ -107,8 +109,9 @@ public class MainWindowViewModel : ViewModelBase
     public ReactiveCommand<Unit, Unit> MoveTagUpCommand { get; set; }
     public ReactiveCommand<Unit, Unit> MoveTagDownCommand { get; set; }
 
-    public MainWindowViewModel()
+    public MainWindowViewModel(MainWindow window)
     {
+        _window = window;
         SelectedPreviousImageCommand = ReactiveCommand.Create(SelectedPreviousImage);
         SelectedNextImageCommand = ReactiveCommand.Create(SelectedNextImage);
         SaveAllCommand = ReactiveCommand.CreateFromTask(SaveAllAsync);
@@ -245,7 +248,7 @@ public class MainWindowViewModel : ViewModelBase
         var temp = CurrentSelectedImage.Tags[index - 1];
         CurrentSelectedImage.Tags[index - 1] = tag;
         CurrentSelectedImage.Tags[index] = temp;
-        
+
         CurrentSelectedTag = CurrentSelectedImage.Tags[index - 1];
     }
 
@@ -416,15 +419,11 @@ public class MainWindowViewModel : ViewModelBase
             .ToList();
 
         _globalTags.Clear();
-        foreach (var tag in tags)
+        
+        _globalTags.AddOrUpdate(tags.Select(tag => new GlobalTagViewModel(tag.Key, 0)
         {
-            var global = _globalTags.Items.SingleOrDefault(globalTag =>
-                             string.Equals(globalTag.Tag, tag.Key,
-                                 StringComparison.InvariantCultureIgnoreCase)) ??
-                         new GlobalTagViewModel(tag.Key, 0);
-            global.ImageCount += tag.Count();
-            _globalTags.AddOrUpdate(global);
-        }
+            ImageCount = tag.Count()
+        }));
 
         _globalTags.Refresh();
         this.RaisePropertyChanged(nameof(TagCountText));
@@ -443,9 +442,12 @@ public class MainWindowViewModel : ViewModelBase
         if (CurrentSelectedImage is null) return;
 
         var newTag = new TagViewModel("New Tag");
+        newTag.OnValueChanged += RefreshSuggestions;
         CurrentSelectedImage.Tags.Add(newTag);
         CurrentSelectedTag = newTag;
-
+        
+        _window.ScrollViewer.ScrollToEnd();
+        
         RebuildGlobalTags();
     }
 
@@ -453,6 +455,7 @@ public class MainWindowViewModel : ViewModelBase
     {
         if (CurrentSelectedImage is null || CurrentSelectedTag is null) return;
 
+        CurrentSelectedTag.ShowAutocomplete = false;
         var image = CurrentSelectedImage;
         var index = image.Tags.IndexOf(CurrentSelectedTag);
 

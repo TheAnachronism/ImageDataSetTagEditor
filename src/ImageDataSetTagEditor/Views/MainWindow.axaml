@@ -24,6 +24,11 @@
     </Window.KeyBindings>
     <Window.Resources>
         <local:BitmapAssetValueConverter x:Key="VariableImage" />
+        <Styles x:Key="CustomVirtualizingStackPanelStyle">
+            <Style Selector="VirtualizingStackPanel">
+                <Setter Property="Margin" Value="0 0 0 100" />
+            </Style>
+        </Styles>
     </Window.Resources>
     <Design.DataContext>
         <!-- This only sets the DataContext for the previewer in an IDE,
@@ -84,59 +89,67 @@
                                Source="{Binding CurrentSelectedImage.ImagePath, Converter={StaticResource VariableImage}, ConverterParameter=500}" />
                     </Border>
                     <Grid Grid.Row="2" ColumnDefinitions="8*, Auto" RowDefinitions="*">
-                        <ListBox Grid.Column="0" Items="{Binding CurrentSelectedImage.Tags}"
-                                 SelectedItem="{Binding CurrentSelectedTag}"
-                                 SelectionMode="Single"
-                                 SelectedIndex="0"
-                                 SelectionChanged="TagListBox_OnSelectionChanged">
-                            <ListBox.KeyBindings>
-                                <KeyBinding Gesture="Down" Command="{Binding SelectNextTagCommand}" />
-                                <KeyBinding Gesture="Up" Command="{Binding SelectPreviousTagCommand}" />
-                                <KeyBinding Gesture="Enter"
-                                            Command="{Binding DataContext.SetSuggestionCommand, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Window}}" />
-                                <KeyBinding Gesture="Escape"
-                                            Command="{Binding DataContext.CloseSuggestionsCommand, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Window}}" />
-                                <KeyBinding Gesture="Alt+Down"
-                                            Command="{Binding DataContext.MoveTagDownCommand, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Window}}" />
-                                <KeyBinding Gesture="Alt+Up"
-                                            Command="{Binding DataContext.MoveTagUpCommand, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Window}}" />
-                            </ListBox.KeyBindings>
-                            <ListBox.ItemTemplate>
-                                <DataTemplate>
-                                    <Grid RowDefinitions="Auto, Auto" ColumnDefinitions="Auto, *">
-                                        <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal"
-                                                    Margin="0 0 5 0">
-                                            <Button Height="25" Width="25" Click="TagMoveUp_OnClick">
-                                                <Image Height="20" Width="20" HorizontalAlignment="Stretch"
-                                                       VerticalAlignment="Stretch"
-                                                       Source="{SvgImage /Assets/arrow-up.svg}" />
-                                            </Button>
-                                            <Button Height="25" Width="25" Click="TagMoveDown_OnClick">
-                                                <Image Height="20" Width="20" HorizontalAlignment="Stretch"
-                                                       VerticalAlignment="Stretch"
-                                                       Source="{SvgImage /Assets/arrow-down.svg}" />
-                                            </Button>
-                                        </StackPanel>
-                                        <TextBox Grid.Row="0" Grid.Column="1" GotFocus="Tag_OnGotFocus"
-                                                 LostFocus="Tag_OnLostFocus"
-                                                 Text="{Binding Value}"
-                                                 HorizontalContentAlignment="Left" />
-                                        <ListBox Grid.Row="1" Grid.Column="1" Name="SuggestionListBox"
-                                                 Items="{Binding DataContext.TagSuggestions, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Window}}"
-                                                 SelectedItem="{Binding DataContext.CurrentSelectedSuggestion, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Window}}"
-                                                 SelectionMode="Single"
-                                                 IsVisible="{Binding ShowAutocomplete}">
-                                            <ListBox.ItemTemplate>
-                                                <DataTemplate>
-                                                    <TextBlock Text="{Binding}" Tapped="Suggestion_OnTapped"
-                                                               PointerPressed="Suggestion_OnPointerPressed" />
-                                                </DataTemplate>
-                                            </ListBox.ItemTemplate>
-                                        </ListBox>
-                                    </Grid>
-                                </DataTemplate>
-                            </ListBox.ItemTemplate>
-                        </ListBox>
+                        <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto" Name="ScrollViewer">
+                            <ListBox Items="{Binding CurrentSelectedImage.Tags}"
+                                     SelectedItem="{Binding CurrentSelectedTag}"
+                                     SelectionMode="Single"
+                                     SelectedIndex="0"
+                                     SelectionChanged="TagListBox_OnSelectionChanged">
+                                <ListBox.KeyBindings>
+                                    <KeyBinding Gesture="Down" Command="{Binding SelectNextTagCommand}" />
+                                    <KeyBinding Gesture="Up" Command="{Binding SelectPreviousTagCommand}" />
+                                    <KeyBinding Gesture="Enter"
+                                                Command="{Binding DataContext.SetSuggestionCommand, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Window}}" />
+                                    <KeyBinding Gesture="Escape"
+                                                Command="{Binding DataContext.CloseSuggestionsCommand, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Window}}" />
+                                    <KeyBinding Gesture="Alt+Down"
+                                                Command="{Binding DataContext.MoveTagDownCommand, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Window}}" />
+                                    <KeyBinding Gesture="Alt+Up"
+                                                Command="{Binding DataContext.MoveTagUpCommand, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Window}}" />
+                                </ListBox.KeyBindings>
+                                <ListBox.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <VirtualizingStackPanel
+                                            Styles="{StaticResource CustomVirtualizingStackPanelStyle}" />
+                                    </ItemsPanelTemplate>
+                                </ListBox.ItemsPanel>
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <Grid RowDefinitions="Auto, Auto" ColumnDefinitions="Auto, *">
+                                            <StackPanel Grid.Row="0" Grid.Column="0" Orientation="Horizontal"
+                                                        Margin="0 0 5 0">
+                                                <Button Height="25" Width="25" Click="TagMoveUp_OnClick">
+                                                    <Image Height="20" Width="20" HorizontalAlignment="Stretch"
+                                                           VerticalAlignment="Stretch"
+                                                           Source="{SvgImage /Assets/arrow-up.svg}" />
+                                                </Button>
+                                                <Button Height="25" Width="25" Click="TagMoveDown_OnClick">
+                                                    <Image Height="20" Width="20" HorizontalAlignment="Stretch"
+                                                           VerticalAlignment="Stretch"
+                                                           Source="{SvgImage /Assets/arrow-down.svg}" />
+                                                </Button>
+                                            </StackPanel>
+                                            <TextBox Grid.Row="0" Grid.Column="1" GotFocus="Tag_OnGotFocus"
+                                                     LostFocus="Tag_OnLostFocus"
+                                                     Text="{Binding Value}"
+                                                     HorizontalContentAlignment="Left" />
+                                            <ListBox Grid.Row="1" Grid.Column="1" Name="SuggestionListBox"
+                                                     Items="{Binding DataContext.TagSuggestions, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Window}}"
+                                                     SelectedItem="{Binding DataContext.CurrentSelectedSuggestion, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Window}}"
+                                                     SelectionMode="Single"
+                                                     IsVisible="{Binding ShowAutocomplete}">
+                                                <ListBox.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="{Binding}" Tapped="Suggestion_OnTapped"
+                                                                   PointerPressed="Suggestion_OnPointerPressed" />
+                                                    </DataTemplate>
+                                                </ListBox.ItemTemplate>
+                                            </ListBox>
+                                        </Grid>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </ScrollViewer>
 
                         <StackPanel Grid.Column="1" Orientation="Vertical">
                             <Button Height="50" Width="50" Command="{Binding AddTagCommand}">
