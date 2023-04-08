@@ -46,6 +46,7 @@ public partial class MainWindow : Window
             TextBox textBox) return;
 
         textBox.Focus();
+        tagList.ScrollIntoView(textBox);
     }
 
     private void GlobalTag_OnDoubleTapped(object? sender, RoutedEventArgs e)
@@ -55,10 +56,12 @@ public partial class MainWindow : Window
 
     private void Tag_OnGotFocus(object? sender, GotFocusEventArgs e)
     {
-        if (sender is not TextBox { DataContext: TagViewModel tag }) return;
+        if (sender is not TextBox { DataContext: TagViewModel tag } textBox) return;
         if (ViewModel.CurrentSelectedTag != tag)
             ViewModel.CurrentSelectedTag = tag;
 
+        textBox.SelectAll();
+        
         ViewModel.CurrentSelectedTag.ShowAutocomplete = true;
         ViewModel.CurrentSelectedSuggestion = null;
         ViewModel.RefreshSuggestions();

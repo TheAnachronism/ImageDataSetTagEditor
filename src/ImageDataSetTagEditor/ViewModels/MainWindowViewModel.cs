@@ -445,6 +445,7 @@ public class MainWindowViewModel : ViewModelBase
         newTag.OnValueChanged += RefreshSuggestions;
         CurrentSelectedImage.Tags.Add(newTag);
         CurrentSelectedTag = newTag;
+        CurrentSelectedTag.SelectedText = CurrentSelectedTag.Value;
         
         _window.ScrollViewer.ScrollToEnd();
         
