@@ -24,12 +24,12 @@
     </Window.KeyBindings>
     <Window.Resources>
         <local:BitmapAssetValueConverter x:Key="VariableImage" />
-        <Styles x:Key="CustomVirtualizingStackPanelStyle">
-            <Style Selector="VirtualizingStackPanel">
-                <Setter Property="Margin" Value="0 0 0 100" />
-            </Style>
-        </Styles>
     </Window.Resources>
+    <Window.Styles>
+        <Style Selector="VirtualizingStackPanel">
+            <Setter Property="Margin" Value="0 0 0 100" />
+        </Style>
+    </Window.Styles>
     <Design.DataContext>
         <!-- This only sets the DataContext for the previewer in an IDE,
              to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
@@ -56,7 +56,7 @@
                 <Grid Grid.Column="0" RowDefinitions="Auto, *">
                     <TextBox Name="ImageSearchTextBox" Grid.Row="0" Text="{Binding CurrentImageSearchTerm}"
                              Watermark="Search Images... (Ctrl+F)" />
-                    <ListBox Grid.Row="1" Items="{Binding FilteredImages}"
+                    <ListBox Grid.Row="1" ItemsSource="{Binding FilteredImages}"
                              SelectedItem="{Binding CurrentSelectedImage}"
                              SelectionMode="Single"
                              SelectionChanged="ImageListBox_OnSelectionChanged">
@@ -90,7 +90,7 @@
                     </Border>
                     <Grid Grid.Row="2" ColumnDefinitions="8*, Auto" RowDefinitions="*">
                         <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto" Name="ScrollViewer">
-                            <ListBox Items="{Binding CurrentSelectedImage.Tags}"
+                            <ListBox ItemsSource="{Binding CurrentSelectedImage.Tags}"
                                      SelectedItem="{Binding CurrentSelectedTag}"
                                      SelectionMode="Single"
                                      SelectedIndex="0"
@@ -99,18 +99,17 @@
                                     <KeyBinding Gesture="Down" Command="{Binding SelectNextTagCommand}" />
                                     <KeyBinding Gesture="Up" Command="{Binding SelectPreviousTagCommand}" />
                                     <KeyBinding Gesture="Enter"
-                                                Command="{Binding DataContext.SetSuggestionCommand, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Window}}" />
+                                                Command="{Binding (vm:MainWindowViewModel)DataContext.SetSuggestionCommand, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Window}}" />
                                     <KeyBinding Gesture="Escape"
-                                                Command="{Binding DataContext.CloseSuggestionsCommand, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Window}}" />
+                                                Command="{Binding (vm:MainWindowViewModel)DataContext.CloseSuggestionsCommand, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Window}}" />
                                     <KeyBinding Gesture="Alt+Down"
-                                                Command="{Binding DataContext.MoveTagDownCommand, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Window}}" />
+                                                Command="{Binding (vm:MainWindowViewModel)DataContext.MoveTagDownCommand, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Window}}" />
                                     <KeyBinding Gesture="Alt+Up"
-                                                Command="{Binding DataContext.MoveTagUpCommand, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Window}}" />
+                                                Command="{Binding (vm:MainWindowViewModel)DataContext.MoveTagUpCommand, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Window}}" />
                                 </ListBox.KeyBindings>
                                 <ListBox.ItemsPanel>
                                     <ItemsPanelTemplate>
-                                        <VirtualizingStackPanel
-                                            Styles="{StaticResource CustomVirtualizingStackPanelStyle}" />
+                                        <VirtualizingStackPanel />
                                     </ItemsPanelTemplate>
                                 </ListBox.ItemsPanel>
                                 <ListBox.ItemTemplate>
@@ -134,13 +133,13 @@
                                                      Text="{Binding Value}"
                                                      HorizontalContentAlignment="Left" />
                                             <ListBox Grid.Row="1" Grid.Column="1" Name="SuggestionListBox"
-                                                     Items="{Binding DataContext.TagSuggestions, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Window}}"
-                                                     SelectedItem="{Binding DataContext.CurrentSelectedSuggestion, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Window}}"
+                                                     ItemsSource="{Binding  (vm:MainWindowViewModel)DataContext.TagSuggestions, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Window}}"
+                                                     SelectedItem="{Binding (vm:MainWindowViewModel)DataContext.CurrentSelectedSuggestion, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Window}}"
                                                      SelectionMode="Single"
                                                      IsVisible="{Binding ShowAutocomplete}">
                                                 <ListBox.ItemTemplate>
                                                     <DataTemplate>
-                                                        <TextBlock Text="{Binding}" Tapped="Suggestion_OnTapped"
+                                                        <TextBlock Text="{Binding DataType=vm:MainWindowViewModel}" Tapped="Suggestion_OnTapped"
                                                                    PointerPressed="Suggestion_OnPointerPressed" />
                                                     </DataTemplate>
                                                 </ListBox.ItemTemplate>
@@ -165,7 +164,7 @@
                 <Grid Grid.Column="2" RowDefinitions="Auto, *">
                     <TextBox Grid.Row="0" Name="GlobalTagSearchBox" Text="{Binding CurrentTagSearchTerm}"
                              Watermark="Search Tags... (Ctrl+Shirt+F)" HorizontalAlignment="Stretch" />
-                    <ListBox Grid.Row="1" Items="{Binding FilteredTags}"
+                    <ListBox Grid.Row="1" ItemsSource="{Binding FilteredTags}"
                              SelectedItem="{Binding CurrentSelectedGlobalTag}" SelectionMode="Single">
                         <ListBox.Styles>
                             <Style Selector="ListBoxItem">

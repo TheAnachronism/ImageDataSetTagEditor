@@ -49,7 +49,7 @@ public partial class MainWindow : Window
         tagList.ScrollIntoView(textBox);
     }
 
-    private void GlobalTag_OnDoubleTapped(object? sender, RoutedEventArgs e)
+    private void GlobalTag_OnDoubleTapped(object? sender, TappedEventArgs e)
     {
         ViewModel.SelectNextImageWithGlobalTag();
     }
@@ -75,7 +75,7 @@ public partial class MainWindow : Window
         tag.ShowAutocomplete = false;
     }
 
-    private void Suggestion_OnTapped(object? sender, RoutedEventArgs _)
+    private void Suggestion_OnTapped(object? sender, TappedEventArgs _)
     {
         if (sender is TextBlock { DataContext: string suggestion })
             SetSuggestion(suggestion);
@@ -104,7 +104,7 @@ public partial class MainWindow : Window
     private void ApplyGlobalTagToAllImages_OnClick(object? sender, RoutedEventArgs e) =>
         ViewModel.ApplyCurrentGlobalTagToAllImages();
 
-    private async void Window_OnClosing(object? sender, CancelEventArgs e)
+    private async void Window_OnClosing(object? sender, WindowClosingEventArgs e)
     {
         if (ViewModel.IsSaving)
             e.Cancel = true;
